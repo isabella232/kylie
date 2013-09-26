@@ -31,8 +31,9 @@ BOOMR.plugins.CACHE_RELOAD =  /** @lends {ipv6} */ {
 	init: function(config) {
 		BOOMR.utils.pluginConfig(impl, config, "CACHE_RELOAD", ["url"]);
 
-		if(!impl.url)
+		if(!impl.url) {
 			return this;
+		}
 
 		// we use document and not BOOMR.window.document since
 		// we can run inside the boomerang iframe if any
