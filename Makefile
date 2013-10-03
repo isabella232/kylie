@@ -47,7 +47,6 @@ $(PROD_DIRECTORY)/perf.js: $(PROD_DIRECTORY)/perf-debug.js
 	echo ")]}" | cat - $(PROD_DIRECTORY)/$(MAP_FILE_NAME) > /tmp/$(MAP_FILE_NAME).tmp && mv /tmp/$(MAP_FILE_NAME).tmp $(PROD_DIRECTORY)/$(MAP_FILE_NAME)
 	echo "done"
 	echo
-
 $(PROD_DIRECTORY)/perf-debug.js: $(PROD_DIRECTORY)/perfStub.js
 	echo "Making $@ ..."
 	echo "using plugins: $(PLUGINS)..."
