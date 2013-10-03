@@ -2,12 +2,6 @@
 # Copyright (c) 2013, Salesforce.com  All rights reserved.
 # Copyrights licensed under the BSD License. See the accompanying LICENSE.txt file for terms.
 
-VERSION := $(shell sed -ne '/^\s*BOOMR\.version/{s/^.*"\([^"]*\)".*/\1/;p;q;}' src/boomerang.js)
-DATE := $(shell date +%s)
-
-PROD_DIRECTORY := prod-$(VERSION)-$(DATE)
-
-PLUGINS := src/plugins/rt.js src/plugins/memory.js src/plugins/navtiming.js src/plugins/mobile.js src/plugins/kylie.js
 
 SHIM := src/shim/perfEnums.js src/shim/perfShimClousreCompilerTypes.js src/shim/perfShim.js
 
