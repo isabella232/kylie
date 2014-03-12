@@ -403,7 +403,7 @@ boomr = {
 			input.name = "data";
 
 			if (window.JSON) {
-				form.enctype = "application/json";
+				form.enctype = "text/plain";
 				input.value = JSON.stringify(impl.vars);
 			} else {
 				form.enctype = "application/x-www-form-urlencoded";
