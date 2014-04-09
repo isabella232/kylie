@@ -10,11 +10,24 @@
 BOOMR = BOOMR || {};
 BOOMR.plugins = BOOMR.plugins || {};
 
+/**
+ * @private
+ * @const
+ */
 var impl = {
 	url: ""
 };
 
-BOOMR.plugins.CACHE_RELOAD = {
+/**
+ * @struct
+ * @const
+ * @type {!IPlugin}
+ */
+BOOMR.plugins.CACHE_RELOAD =  /** @lends {ipv6} */ {
+	/**
+     * @param {?Object.<string, ?>=} config
+     * @return {!IPlugin}
+     */
 	init: function(config) {
 		BOOMR.utils.pluginConfig(impl, config, "CACHE_RELOAD", ["url"]);
 
@@ -31,11 +44,12 @@ BOOMR.plugins.CACHE_RELOAD = {
 		return this;
 	},
 
+	/**
+     * @return {boolean}
+     */
 	is_complete: function() {
 		// we always return true since this plugin never adds anything to the beacon
 		return true;
 	}
 };
-
 }());
-

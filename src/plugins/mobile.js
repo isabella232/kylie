@@ -1,6 +1,7 @@
-/**
-\file mobile.js
-Plugin to capture navigator.connection.type on browsers that support it
-*/
+/*jshint sub:true*/
 
-BOOMR.addVar("mob.ct", (typeof navigator === 'object' && navigator.connection) ? navigator.connection.type : 0);
+/**
+ * \file mobile.js
+ * Plugin to capture navigator.connection.type on browsers that support it
+ */
+BOOMR.addVar("mob.ct", (typeof navigator === 'object' && navigator["connection"]) ? navigator["connection"]["type"] : 0);
