@@ -1,35 +1,49 @@
 /*
- * Copyright (c) 2013, Salesforce.com. All rights reserved.
+ * Copyright (c) 2014, Salesforce.com. All rights reserved.
  * Copyrights licensed under the BSD License. See the accompanying LICENSE.txt file for terms.
  */
 
 /*jshint sub:true*/
 
 /**
+ * Init parameters
+ *
+ * {{"pageStartTime": number|undefined, "restiming": (boolean|undefined), "bURL": (!string|undefined), "logLevel": (string|window.typePerfLogLevel|undefined)}}
+ * 
  * @dict
  */
 var perfOptions = window["perfOptions"];
 
-if (perfOptions) {
-    if (!perfOptions["pageStartTime"]) {
-        /**
-         * @type {!number}
-         * @const
-         */
-        perfOptions["pageStartTime"] = new Date().getTime();
-    }
-    if (perfOptions["bURL"]) {
-        BOOMR.setBeaconUrl(perfOptions["bURL"]);
-    }
-} else {
-    perfOptions = {
-        /**
-         * @type {!number}
-         * @const
-         * @expose
-         */
-        pageStartTime: new Date().getTime()
-    };
+if (!perfOptions) {
+    perfOptions = { };
+}
+
+/**
+ * Disable all plugins by default and only enable the needed through the config plugin Only SFDC config plugin, RT
+ * plugins are enabled default
+ */
+BOOMR.init({
+    log: function(m, l, s) { window.console.log(s + ": [" + l + "] " + m); },
+    /** @type {boolean} */
+    wait: true,
+    /** @type !Object.<string, boolean> */
+    Kylie: {
+        /** @type {boolean} */
+        enabled: false
+    },
+    /** @type !Object.<string, boolean> */
+    ResourceTiming: {
+        /** @type {boolean} */
+        enabled: !!perfOptions["restiming"]
+    },
+    /** @type {boolean} */
+    autorun: false,
+    /** @type {!string|undefined} */
+    beacon_url: perfOptions["bURL"]
+});
+
+if(perfOptions["pageStartTime"]) {
+    BOOMR.plugins.RT.startTimer("t_page", perfOptions["pageStartTime"]);
 }
 
 /**
@@ -80,13 +94,6 @@ var Perf = /** @lends {Perf} */ ({
      * @expose
      */
     currentLogLevel: getLogLevel(perfOptions["logLevel"]),
-
-    /**
-     * @type {!number}
-     * @const
-     * @expose
-     */
-    startTime: perfOptions["pageStartTime"],
 
     /**
      * @param {!string} id The id used to identify the mark.
@@ -148,6 +155,20 @@ var Perf = /** @lends {Perf} */ ({
         }
         return Perf;
     },
+
+    /**
+     * This method sets the time that the server started processing the request and 
+     * finished sending the response.
+     *
+     * @param {number} startTime time in ms (in browser local time).
+     * @param {number} delta The time spent on the server in ms (in browser local time).
+     * @return {!IPerf}
+     * @expose
+     */
+    setServerTime : function(startTime, delta) {
+        BOOMR.plugins.RT.setServerTime(startTime, delta);
+        return Perf;
+    },
     
     /**
      * Serializes a measure object to JSON.
@@ -157,6 +178,9 @@ var Perf = /** @lends {Perf} */ ({
      * @expose
      */
     measureToJson: function (measure) {
+        if(window["JSON"]) {
+            return JSON.stringify(measure);
+        }
         return "{" + PerfConstants.MEASURE_NAME + ':"' + measure[PerfConstants.MEASURE_NAME] + '",' + PerfConstants.MARK_NAME + ':"' + measure[PerfConstants.MARK_NAME] + '",' + PerfConstants.ELAPSED_TIME + ":" + measure[PerfConstants.ELAPSED_TIME] +
                 "," + PerfConstants.REFERENCE_TIME + ":" + measure[PerfConstants.REFERENCE_TIME] + "}";
     },
@@ -190,8 +214,7 @@ var Perf = /** @lends {Perf} */ ({
                         markJson.push('"' + k + '":' + vars[k]);
                     }
                     measure = {};
-                    measure[PerfConstants.MEASURE_NAME] = k;
-                    measure[PerfConstants.MARK_NAME] = k;
+                    measure[PerfConstants.MEASURE_NAME] = measure[PerfConstants.MARK_NAME] = k;
                     measure[PerfConstants.ELAPSED_TIME] = vars[k];
                     timer = timers[k];
                     measure[PerfConstants.REFERENCE_TIME] = (timer && timer.start) ? timer.start : rt;
@@ -201,6 +224,9 @@ var Perf = /** @lends {Perf} */ ({
         }
         if (includeMarks) {
             json.push("marks:{", markJson.join(","), "},");
+        }
+        if(vars.hasOwnProperty(BOOMR.plugins.ResourceTiming.varKey) && window["JSON"]) {
+            json.push("restiming:{", JSON.stringify(vars[BOOMR.plugins.ResourceTiming.varKey]),  "},");
         }
         json.push("measures:[", measureJson.join(","), "]}");
 

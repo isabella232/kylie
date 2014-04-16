@@ -75,6 +75,18 @@ var Perf = window[ROOT_NAMESPACE] = /** @lends {Perf} */ ({
      */
     setTimer : function (timer_name, timer_delta, logLevel) { return Perf; },
     /**
+     * This method sets the time that the server started processing the request and 
+     * finished sending the response.
+     *
+     * @param {number} startTime time in ms (in browser local time).
+     * @param {number} delta The time spent on the server in ms (in browser local time).
+     * @return {!IPerf}
+     * @expose
+     */
+    setServerTime : function(startTime, delta) {
+        return Perf;
+    },
+    /**
      * Get a JSON-serialized version of all existing timers and stats in POST friendly format.
      *
      * @return {!string} POST-friendly timers and stats.

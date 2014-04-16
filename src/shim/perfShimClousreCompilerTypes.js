@@ -69,6 +69,15 @@ IPerf.prototype.toJson;
  */
 IPerf.prototype.setTimer;
 /**
+ * This method sets the time that the server started processing the request and 
+ * finished sending the response.
+ *
+ * @param {number} startTime time in ms (in browser local time).
+ * @param {number} delta The time spent on the server in ms (in browser local time).
+ * @return {!IPerf}
+ */
+IPerf.prototype.setServerTime;
+/**
  * Get a JSON-serialized version of all existing timers and stats in POST friendly format.
  * 
  * @return {!string} POST-friendly timers and stats.

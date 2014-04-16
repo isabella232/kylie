@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head><title>Stats: Perf</title></head>
+<body onload="Perf.onLoad();delay();Perf.endMark('Twain');exists('Twain');">
+This page should load without javascript errors.<br>
+This page calls <code>mark()</code> with 1 parameter, mark name, so it will try to measure the time to load the table using the mark name, "Twain".  The measure call will be done after the the onload event has been called.<br>
+Status: <span id="state" style="background-color:green;">PASS</span>
+<script>
+window.onerror = function() {
+	var st = document.getElementById("state");
+	st.style.backgroundColor="red";
+	st.innerHTML = "FAIL";
+}
+var perfOptions = {logLevel:"INTERNAL", bURL:"/forcedotcom/boomerang", pageStartTime: (new Date).getTime()};
+</script>
+<script src="../perf.js"></script>
+<script>Perf.mark("Twain")</script>
+<table>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+</table>
+<script>
+function delay() {
+	var delay = 1, // 1 second delay
+	    now = new Date(),
+	    desiredTime = new Date().setSeconds(now.getSeconds() + delay);
+	while (now < desiredTime) {
+	    now = new Date(); // update the current time
+	}
+}
+function exists(markName) {
+	var data = Perf.getMeasures();
+	for(var i = 0, d; i < data.length; i++) {
+	    d = data[i];
+	    if((d.mark == markName) && (d.et > 0) && (d.rt > 0)) {
+	        return true;
+	    }
+	}
+	throw new Error("Test failed. Could not find the mark, '" + markName + "'");
+}
+</script>
+</body>
+<!--
+    Copyright (c) 2014, Salesforce.com. All rights reserved.
+    Copyrights licensed under the BSD License. See the accompanying LICENSE.txt file for terms.
+-->
+</html>

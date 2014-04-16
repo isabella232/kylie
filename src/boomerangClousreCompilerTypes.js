@@ -19,7 +19,7 @@ IBOOMR.prototype.version;
 IBOOMR.prototype.window;
 
 /**
- * @type {number|undefined}
+ * @type {number|null}
  */
 IBOOMR.prototype.t_lstart;
 
@@ -37,6 +37,7 @@ IBOOMR.prototype.sendBeacon;
  * The page dev calls this method when they determine the page is usable.
  * Only call this if autorun is explicitly set to false
  *
+ * @param {Event?} ev
  * @return {IBOOMR};
  */
 IBOOMR.prototype.page_ready;
@@ -200,6 +201,26 @@ IBOOMR_utils.prototype.pluginConfig;
  * Parse a cookie string returned by getCookie() and split it into its constituent subcookies.
  * 
  * @param {string?} cookie Content of a cookie
- * @return {?Object.<!string, ?(string|number|boolean)>} On success, an object of key/value pairs of all sub cookies. Note that some subcookies may have empty values. null if sCookie was not set or did not contain valid subcookies.
+ * @return {?Object.<!string, ?(string|number)>} On success, an object of key/value pairs of all sub cookies. Note that some subcookies may have empty values. null if sCookie was not set or did not contain valid subcookies.
  */
 IBOOMR_utils.prototype.getSubCookies;
+
+/**
+ * Hash the query string of the URL if MD% us included in the utils package.
+ *
+ * @param {string} url
+ * @param {boolean} stripHash
+ * @return {string}
+ */
+IBOOMR_utils.prototype.hashQueryString;
+
+/**
+ * Cleans up the URL by removing the query string.
+ * 
+ * @param {?string} url The url to redact
+ * @return {?string} 
+ */
+IBOOMR_utils.prototype.cleanupURL;
+
+/** @type {function(!string, string=, string=)|undefined} */
+IBOOMR_utils.prototype.MD5;

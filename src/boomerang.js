@@ -31,6 +31,64 @@ you, but we have a few ideas.
 var BOOMR_start = new Date().getTime();
 
 /**
+ * Check the value of document.domain and fix it if incorrect.
+ * This function is run at the top of boomerang, and then whenever
+ * init() is called.  If boomerang is running within an iframe, this
+ * function checks to see if it can access elements in the parent
+ * iframe.  If not, it will fudge around with document.domain until
+ * it finds a value that works.
+ *
+ * This allows customers to change the value of document.domain at
+ * any point within their page's load process, and we will adapt to
+ * it.
+ *
+ * @param {string=} domain The current domain of the document.
+ * @return {!boolean}
+ * @private
+ */
+function BOOMR_check_doc_domain(domain) {
+    var test;
+
+    // If domain is not passed in, then this is a global call
+    // domain is only passed in if we call ourselves, so we
+    // skip the frame check at that point
+    if (!domain) {
+        // If we're running in the main window, then we don't need this
+        if ((window["parent"] === window) || !document.getElementById('boomr-if-as')) {
+            return true;
+        }
+
+        domain = document["domain"];
+    }
+
+    if (domain.indexOf(".") === -1) {
+        return false;
+    }
+
+    // 1. Test without setting document.domain
+   try {
+        test = window["parent"]["document"];
+        return true;    // all okay
+    }
+    // 2. Test with document.domain
+    catch (err) {
+        document["domain"] = domain;
+    }
+    try {
+        test = window["parent"]["document"];
+        return true;    // all okay
+    }
+    // 3. Strip off leading part and try again
+    catch (err) {
+        domain = domain.replace(/^[\w-]+\./, '');
+    }
+
+    return BOOMR_check_doc_domain(domain);
+}
+
+BOOMR_check_doc_domain();
+
+/**
  * Short namespace because I don't want to keep typing BOOMERANG
  * 
  * 
@@ -50,9 +108,15 @@ var BEACON_URL = "";
  */
 function run(w) {
 
+    /** 
+     * @type {string}
+     */
+    var myurl;
+
     // This is the only block where we use document without the w. qualifier
     if (w.parent !== w && document.getElementById("boomr-if-as") && document.getElementById("boomr-if-as").nodeName.toLowerCase() === "script") {
         w = w.parent;
+        myurl = document.getElementById('boomr-if-as').src;
     }
 
     /** 
@@ -83,6 +147,16 @@ function run(w) {
         beacon_url: BEACON_URL,
 
         /**
+         * beacon request method, either GET, POST or AUTO. AUTO will check the
+         * request size then use GET if the request URL is less than 2000 chars
+         * otherwise it will fall back to a POST request.
+         *
+         * @type {!string}
+         * @private
+         */
+         beacon_type: "AUTO",
+
+        /**
          * strip out everything except last two parts of hostname.
          * This doesn't work well for domains that end with a country tld,
          * but we allow the developer to override site_domain for that.
@@ -100,6 +174,12 @@ function run(w) {
          * @private
          */
         user_ip: "",
+
+        /**
+         * @type {!boolean}
+         * @private
+         */
+        strip_query_string: false,
 
         /** 
          * @type {boolean}
@@ -125,7 +205,9 @@ function run(w) {
             "onLoad": [],
             "visibility_changed": [],
             "before_beacon": [],
-            "click": []
+            "xhr_load": [],
+            "click": [],
+            "form_submit": []
         },
 
         /**
@@ -158,12 +240,32 @@ function run(w) {
             if (!target || (target.nodeName.toUpperCase() === "OBJECT" && target.type === "application/x-shockwave-flash")) {
                 return;
             }
-            
+
             if (target.nodeType === 3) {// defeat Safari bug
                 target = target.parentNode;
             }
-            
+
             impl.fireEvent("click", target);
+        },
+
+        /**
+         * @param {Event?} ev
+         */
+        onsubmit_handler: function(ev) {
+            var target;
+            if (!ev) {
+                ev = w.event;
+            }
+            if (ev.target) {
+                target = ev.target;
+            } else if (ev.srcElement) {
+                target = ev.srcElement;
+            }
+            if (target.nodeType === 3) {// defeat Safari bug
+                target = target.parentNode;
+            }
+
+           impl.fireEvent("form_submit", target);
         },
 
         /**
@@ -201,27 +303,31 @@ function run(w) {
      */
     var boomr = /** @lends {boomr} */ {
         /**
-         * @type {number|undefined}
+         * @type {number|null}
          */
-        t_lstart: undefined,
+        t_lstart: null,
         /**
          * @type {number}
          */
         t_start: BOOMR_start,
         /**
+         * @type {string}
+         */
+        url: myurl,
+        /**
          * @type {?number}
          */
         t_end: null,
-        
+
         /** @type {Object.<!string, !IPlugin>} */
         plugins: {},
-        
+
         /**
          * @type {!string}
          * @const
          */
         version: "0.9",
-        
+
         /**
          * @type {?Window}
          */
@@ -292,6 +398,7 @@ function run(w) {
                 var value, nameval, c, exp;
 
                 if (!name || !impl.site_domain) {
+                    boomr.debug("No cookie name or site domain: " + name + "/" + impl.site_domain);
                     return false;
                 }
 
@@ -306,10 +413,16 @@ function run(w) {
                     c.push("expires=" + exp);
                 }
 
-                if (nameval.length < 4000) {
+                if (nameval.length < 500) {
                     d.cookie = c.join("; ");
                     // confirm cookie was set (could be blocked by user's settings, etc.)
-                    return (value === boomr.utils.getCookie(name));
+                    var savedVal = boomr.utils.getCookie(name);
+                    if (value === savedVal) {
+                        return true;
+                    }
+                    boomr.warn("Saved cookie value doesn't match what we tried to set:\n" + value + "\n" + savedVal);
+                } else {
+                    boomr.warn("Cookie too long: " + nameval.length + " " + nameval);
                 }
 
                 return false;
@@ -319,42 +432,80 @@ function run(w) {
              * Parse a cookie string returned by getCookie() and split it into its constituent subcookies.
              * 
              * @param {string?} cookie Content of a cookie
-             * @return {?Object.<!string, ?(string|number|boolean)>} On success, an object of key/value pairs of all sub cookies. Note that some subcookies may have empty values. null if sCookie was not set or did not contain valid subcookies.
+             * @return {?Object.<!string, ?(string|number)>} On success, an object of key/value pairs of all sub cookies. Note that some subcookies may have empty values. null if sCookie was not set or did not contain valid subcookies.
              */
             getSubCookies: function (cookie) {
                 var cookies_a,
                     i,
                     l,
                     kv,
+                    gotcookies = false,
                     cookies = {};
 
                 if (!cookie) {
                     return null;
                 }
 
-                cookies_a = cookie.split("&");
-
-                if (cookies_a.length === 0) {
+                if (typeof cookie !== "string") {
+                    boomr.debug("TypeError: cookie is not a string: " + typeof cookie);
                     return null;
                 }
 
+                cookies_a = cookie.split('&');
+
                 for (i = 0, l = cookies_a.length; i < l; i++) {
                     kv = cookies_a[i].split("=");
-                    kv.push("");    // just in case there's no value
-                    cookies[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+                    if (kv[0]) {
+                        kv.push("");    // just in case there's no value
+                        cookies[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+                        gotcookies = true;
+                    }
                 }
 
-                return cookies;
+                return gotcookies ? cookies : null;
             },
 
             /**
-             * Removes the cookie identified by sName by nullifying its value, and making it a session cookie.
+             * Removes the cookie identified by name by nullifying its value, and making it a session cookie.
              * 
              * @param {?string} name The name of the cookie
              * @return {boolean} 
              */
             removeCookie: function (name) {
-                return boomr.utils.setCookie(name, {}, 0);
+                return boomr.utils.setCookie(name, {}, -86400);
+            },
+
+            /**
+             * Cleans up the URL by removing the query string.
+             * 
+             * @param {string} url The url to redact
+             * @return {string} 
+             */
+            cleanupURL: function (url) {
+                if (impl.strip_query_string && url) {
+                    return url.replace(/\?.*/, '?qs-redacted');
+                }
+                return url;
+            },
+
+            /**
+             * Hash the query string of the URL if MD% us included in the utils package.
+             *
+             * @param {string} url
+             * @param {boolean} stripHash
+             * @return {string}
+             */
+            hashQueryString: function (url, stripHash) {
+                if (!url) {
+                    return url;
+                }
+                if (stripHash) {
+                    url = url.replace(/#.*/, '');
+                }
+                if (!boomr.utils.MD5) {
+                    return url;
+                }
+                return url.replace(/\?([^#]*)/, function (m0, m1) { return '?' + (m1.length > 10 ? boomr.utils.MD5(m1) : m1); });
             },
 
             /**
@@ -394,6 +545,86 @@ function run(w) {
                 } else {
                     el.attachEvent("on" + type, fn);
                 }
+            },
+
+            /**
+             * @param {!Window|EventTarget} el
+             * @param {!string} type
+             * @param {function(Event?)} fn
+             * @private
+             */
+            removeListener: function (el, type, fn) {
+                if (el.removeEventListener) {
+                    el.removeEventListener(type, fn, false);
+                } else {
+                    el.detachEvent("on" + type, fn);
+                }
+            },
+
+            /**
+             * @param {!Array.<!string>} arr
+             * @param {!Object.<!string, !Array.<!Object>|!string>} vars
+             * @param {?string=} prefix
+             * @return {number}
+             * @private
+             * @suppress {checkTypes}
+             */
+            pushVars: function (arr, vars, prefix) {
+                var k, i, n = 0;
+
+                for (k in vars) {
+                    if (vars.hasOwnProperty(k)) {
+                        if (Object.prototype.toString.call(vars[k]) === "[object Array]") {
+                            for (i = 0; i < vars[k].length; ++i) {
+                                n += boomr.utils.pushVars(arr, vars[k][i], k + "[" + i + "]");
+                            }
+                        } else {
+                            ++n;
+                            arr.push(
+                                encodeURIComponent(prefix ? (prefix + "[" + k + "]") : k) + "=" + (((vars[k] === undefined) || (vars[k] === null)) ? '' : encodeURIComponent(vars[k]))
+                            );
+                        }
+                    }
+                }
+                return n;
+            },
+
+            /**
+             * @param {!string} urlenc
+             * @private
+             */
+            postData: function (urlenc) {
+                var iframe = document.createElement("iframe"),
+                    form = document.createElement("form"),
+                    input = document.createElement("input");
+
+                iframe.name = "boomerang_post";
+                iframe.style.display = form.style.display = "none";
+
+                form.method = "POST";
+                form.action = impl.beacon_url;
+                form.target = iframe.name;
+
+                input.name = "data";
+
+                if (window["JSON"]) {
+                    form.enctype = "text/plain";
+                    input.value = JSON.stringify(impl.vars);
+                } else {
+                    form.enctype = "application/x-www-form-urlencoded";
+                    input.value = urlenc;
+                }
+
+                document.body.appendChild(iframe);
+                form.appendChild(input);
+                document.body.appendChild(form);
+
+                boomr.utils.addListener(iframe, "load", function () {
+                    document.body.removeChild(form);
+                    document.body.removeChild(iframe);
+                });
+
+                form.submit();
             }
         },
 
@@ -405,8 +636,10 @@ function run(w) {
          */
         init: function (config) {
             var i,
-                l = null,
-                properties = ["beacon_url", "site_domain", "user_ip"];
+                l,
+                properties = ["beacon_url", "beacon_type", "site_domain", "user_ip", "strip_query_string"];
+
+            BOOMR_check_doc_domain();
 
             if (!config) {
                 config = {};
@@ -427,7 +660,7 @@ function run(w) {
 
             for (l in boomr.plugins) {
                 if (boomr.plugins.hasOwnProperty(l)) {
-                    // config[pugin].enabled has been set to false
+                    // config[plugin].enabled has been set to false
                     if (config[l] && config[l].hasOwnProperty("enabled") && config[l].enabled === false) {
                         impl.disabled_plugins[l] = 1;
                         continue;
@@ -463,11 +696,12 @@ function run(w) {
             boomr.utils.addListener(w, "DOMContentLoaded", function () { impl.fireEvent("dom_loaded"); });
 
             (function () {
+                var fire_visible, forms, iterator;
                 // visibilitychange is useful to detect if the page loaded through prerender
                 // or if the page never became visible
                 // http://www.w3.org/TR/2011/WD-page-visibility-20110602/
                 // http://www.nczonline.net/blog/2011/08/09/introduction-to-the-page-visibility-api/
-                var fire_visible = function () { impl.fireEvent("visibility_changed"); };
+                fire_visible = function () { impl.fireEvent("visibility_changed"); };
                 if (d["webkitVisibilityState"]) {
                     boomr.utils.addListener(d, "webkitvisibilitychange", fire_visible);
                 } else if (d["msVisibilityState"]) {
@@ -477,6 +711,11 @@ function run(w) {
                 }
 
                 boomr.utils.addListener(d, "mouseup", impl.onclick_handler);
+
+                forms = d.getElementsByTagName("form");
+                for (iterator = 0; iterator < forms.length; iterator++) {
+                    boomr.utils.addListener(forms[iterator], "submit", impl.onsubmit_handler);
+                }
 
                 if (!w["onpagehide"] && w["onpagehide"] !== null) {
                     // This must be the last one to fire
@@ -497,13 +736,21 @@ function run(w) {
          * The page dev calls this method when they determine the page is usable.
          * Only call this if autorun is explicitly set to false
          * 
+         * @param {Event?} ev
          * @return {!IBOOMR}
          */
-        page_ready: function () {
+        page_ready: function (ev) {
+            var ev2 = ev;
+            if (!ev2) {
+                ev2 = w.event;
+            }
+            if (!ev2) {
+                ev2 = { name: "load" };
+            }
             if (impl.onloadfired) {
                 return boomr;
             }
-            impl.fireEvent("page_ready");
+            impl.fireEvent("page_ready", ev2);
             impl.onloadfired = true;
             return boomr;
         },
@@ -670,13 +917,40 @@ function run(w) {
         },
 
         /**
+         * @param {!string} name
+         * @return {!{"loaded": function()}}
+         */
+        requestStart: function (name) {
+            var t_start = new Date().getTime();
+            boomr.plugins.RT.startTimer("xhr_" + name, t_start);
+
+            return {
+                loaded: function () {
+                    boomr.responseEnd(name, t_start);
+                }
+            };
+        },
+
+        /**
+         * @param {!string} name
+         * @param {number} t_start
+         */
+        responseEnd: function (name, t_start) {
+            boomr.plugins.RT.startTimer("xhr_" + name, t_start);
+            impl.fireEvent("xhr_load", { "name": "xhr_" + name });
+        },
+
+        /**
          * @return {!IBOOMR}
          */
         sendBeacon: function () {
             var l,
+                data,
                 url,
                 img,
-                nparams = 0;
+                nparams;
+
+            boomr.debug("Checking if we can send beacon");
 
             // At this point someone is ready to send the beacon.  We send
             // the beacon only if all plugins have finished doing what they
@@ -687,13 +961,14 @@ function run(w) {
                         continue;
                     }
                     if (!boomr.plugins[l].is_complete()) {
+                        BOOMR.debug("Plugin " + l + " is not complete, deferring beacon send");
                         return boomr;
                     }
                 }
             }
 
             impl.vars["v"] = boomr.version;
-            impl.vars["u"] = d.URL.replace(/#.*/, "");
+            impl.vars["u"] = boomr.utils.cleanupURL(d.URL.replace(/#.*/, ""));
             // use d.URL instead of location.href because of a safari bug
             if (w !== window) {
                 impl.vars["if"] = "";
@@ -709,54 +984,61 @@ function run(w) {
                 return boomr;
             }
 
-            // if there are already url parameters in the beacon url,
-            // change the first parameter prefix for the boomerang url parameters to &
+            data = [];
+            nparams = boomr.utils.pushVars(data, impl.vars);
 
-            url = [];
+            if (!nparams) {
+                // do not make the request if there is no data
+                return boomr;
+            }
 
-            for (l in impl.vars) {
-                if (impl.vars["hasOwnProperty"](l)) {
-                    nparams++;
-                    url.push(encodeURIComponent(l) + "=" + ((impl.vars[l] === undefined || impl.vars[l] === null) ? "" : encodeURIComponent(impl.vars[l] + "")));
+            data = data.join("&");
+
+            if (impl.beacon_type === 'POST') {
+                boomr.utils.postData(data);
+            } else {
+
+                // if there are already url parameters in the beacon url,
+                // change the first parameter prefix for the boomerang url parameters to &
+                url = impl.beacon_url + ((impl.beacon_url.indexOf("?") > -1) ? "&" : "?") + data;
+
+                // using 2000 here as a de facto maximum URL length based on:
+                // http://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers
+                if (url.length > 2000 && impl.beacon_type === "AUTO") {
+                    boomr.utils.postData(data);
+                } else {
+                    boomr.debug("Sending url: " + url.replace(/&/g, "\n\t"));
+                    img = new Image();
+                    img.src = url;
                 }
             }
-
-            url = impl.beacon_url + ((impl.beacon_url.indexOf("?") > -1) ? "&" : "?") + url.join("&");
-
-            boomr.debug("Sending url: " + url.replace(/&/g, "\n\t"));
-
-            // only send beacon if we actually have something to beacon back
-            if (nparams) {
-                img = new Image();
-                img.src = url;
-            }
-
             return boomr;
-        },
-
-        /**
-         * Kylie implementation
-         * This is to re-init the beacon_url for one off needs
-         * 
-         * @param {!string} url The URL to use for beaconing data
-         */
-        setBeaconUrl: function (url) {
-            impl.beacon_url = url;
         }
     };
 
     // Kylie implementation
     if (typeof perfOptions["BOOMR_lstart"] === "number") {
         boomr.t_lstart = perfOptions["BOOMR_lstart"];
+    } else if (boomr.window["perfOptions"] && typeof boomr.window["perfOptions"]["BOOMR_lstart"] === 'number') {
+        boomr.t_lstart = boomr.window["perfOptions"]["BOOMR_lstart"];
     } else {
         boomr.t_lstart = 0;
     }
     delete perfOptions["BOOMR_lstart"];
 
     (function () {
+
+        if (w.YAHOO && w.YAHOO.widget && w.YAHOO.widget.Logger) {
+            boomr.log = w.YAHOO.log;
+        } else if (w.Y && w.Y.log) {
+            boomr.log = w.Y.log;
+        } else if (typeof window.console === "object" && window.console.log !== undefined) {
+            boomr.log = function(m, l, s) { window.console.log(s + ": [" + l + "] " + m); };
+        }
+
         /**
          * @param {!string} l error log
-         * @return {function(string, ?string=)}
+         * @return {function(string, ?string=): !IBOOMR}
          */
         function make_logger (l) {
             /**
@@ -764,7 +1046,7 @@ function run(w) {
              * @param {?string=} s 
              * @return {!IBOOMR}
              */
-            return function (m, s) {
+            return function(m, s) {
                 boomr.log(m, l, "boomerang" + (s ? "." + s : ""));
                 return boomr;
             };
@@ -796,17 +1078,8 @@ function run(w) {
         boomr.error = make_logger("error");
     }());
 
-    if (w.YAHOO && w.YAHOO.widget && w.YAHOO.widget.Logger) {
-        boomr.log = w.YAHOO.log;
-    } else if (w.Y && w.Y.log) {
-        boomr.log = w.Y.log;
-    } else if (typeof w.console === "object" && w.console.log !== undefined) {
-        boomr.log = function (m, l, s) { w.console.log(s + ": [" + l + "] " + m); };
-    }
-
     BOOMR = boomr;
 }
 run(window);
 
 //end of boomerang beaconing section
-//Now we start built in plugins.

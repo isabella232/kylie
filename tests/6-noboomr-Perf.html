@@ -14,15 +14,13 @@ window.onerror = function() {
 </script>
 <script src="../perf.js"></script>
 <script>
-(function() {
-	if(typeof BOOMR !== "undefined") {
-		throw new Error("Test failed. BOOMR is defined. Expected it to be undefined.");
-	}
-})();
+if(typeof BOOMR !== "undefined") {
+	throw new Error("Test failed. BOOMR is defined. Expected it to be undefined.");
+}
 </script>
 </body>
-</html>
 <!--
-    Copyright (c) 2013, Salesforce.com. All rights reserved.
+    Copyright (c) 2014, Salesforce.com. All rights reserved.
     Copyrights licensed under the BSD License. See the accompanying LICENSE.txt file for terms.
 -->
+</html>
