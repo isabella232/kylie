@@ -71,6 +71,7 @@ function BOOMR_check_doc_domain(domain) {
 BOOMR_check_doc_domain();
 var BOOMR;
 var BEACON_URL = "";
+var VERSION = "";
 function run(w) {
   var myurl;
   if (w.parent !== w && (document.getElementById("boomr-if-as") && document.getElementById("boomr-if-as").nodeName.toLowerCase() === "script")) {
@@ -126,7 +127,7 @@ function run(w) {
     }
     return true;
   }};
-  var boomr = {t_lstart:null, t_start:BOOMR_start, url:myurl, t_end:null, plugins:{}, version:"0.9", window:w, utils:{objectToString:function(o, separator) {
+  var boomr = {t_lstart:null, t_start:BOOMR_start, url:myurl, t_end:null, plugins:{}, version:VERSION, window:w, utils:{objectToString:function(o, separator) {
     var value = [], l;
     if (!o || typeof o !== "object") {
       return o;
@@ -556,7 +557,7 @@ function runrt(w) {
   var d = w.document;
   BOOMR = BOOMR || {};
   BOOMR.plugins = BOOMR.plugins || {};
-  var impl = {initialized:false, onloadfired:false, visiblefired:false, complete:false, timers:{}, cookie:"RT", cookie_exp:1800, strict_referrer:false, navigationType:0, navigationStart:undefined, responseStart:undefined, ti:undefined, sessionID:Math.floor(Math.random() * 4294967296).toString(36), sessionStart:undefined, sessionLength:0, t_start:undefined, t_fb_approx:undefined, r:null, r2:null, updateCookie:function(params, timer) {
+  var impl = {initialized:false, onloadfired:false, visiblefired:false, complete:false, timers:{}, cookie:"RT", cookie_exp:1800, strict_referrer:false, navigationType:0, redirectCount:0, navigationStart:undefined, responseStart:undefined, ti:undefined, sessionID:Math.floor(Math.random() * 4294967296).toString(36), sessionStart:undefined, sessionLength:0, t_start:undefined, t_fb_approx:undefined, r:null, r2:null, updateCookie:function(params, timer) {
     var t_end, t_start, subcookies, k;
     if (!impl.cookie) {
       return impl;
@@ -661,6 +662,7 @@ function runrt(w) {
     p = w.performance || (w["msPerformance"] || (w["webkitPerformance"] || w["mozPerformance"]));
     if (p && p.navigation) {
       impl.navigationType = p.navigation.type;
+      impl.redirectCount = p.navigation.redirectCount;
     }
     if (p && p.timing) {
       impl.ti = p.timing;
@@ -685,7 +687,13 @@ function runrt(w) {
     } else {
       BOOMR.warn("This browser doesn't support the WebTiming API", "rt");
     }
-    return;
+  }, getNavTimingOnlyNumbers:function() {
+    if (impl.ti.fetchStart !== undefined) {
+      BOOMR.plugins.RT.setTimer("t_dns", impl.ti.domainLookupEnd - impl.ti.domainLookupStart, impl.ti.domainLookupStart);
+      BOOMR.plugins.RT.setTimer("t_tcp", impl.ti.connectEnd - impl.ti.connectStart, impl.ti.connectStart);
+      BOOMR.addVar("nt_nav_type", impl.navigationType);
+      BOOMR.addVar("nt_red_cnt", impl.redirectCount);
+    }
   }, page_unload:function(edata) {
     BOOMR.debug("Unload called with " + BOOMR.utils.objectToString(edata), "rt");
     impl.updateCookie({"r":d.URL}, edata.type === "beforeunload" ? "ul" : "hd");
@@ -801,7 +809,7 @@ function runrt(w) {
     rt.startTimer("t_server", startTime).endTimer("t_server", startTime + delta);
   }, done:function(edata, ename) {
     BOOMR.debug("Called done with " + BOOMR.utils.objectToString(edata) + ", " + ename, "rt");
-    var t_start, t_done = (new Date).getTime(), ntimers = 0, t_name, timer, t_other = [];
+    var t_start, t_done = (new Date).getTime(), ntimers = 0, t_name, timer;
     impl.complete = false;
     impl.initFromCookie();
     impl.initNavTiming();
@@ -852,13 +860,19 @@ function runrt(w) {
     if (impl.timers.hasOwnProperty("t_server")) {
       rt.endTimer("req_lat", impl.timers["t_server"].start);
       if (impl.ti.responseEnd) {
-        rt.startTimer("resp_lat", impl.timers["t_server"].end).endTimer("resp_lat", impl.ti.responseEnd);
+        var delta = impl.ti.responseEnd - impl.timers["t_server"].end;
+        if (delta >= 0) {
+          rt.setTimer("resp_lat", delta, impl.timers["t_server"].end);
+        } else {
+          BOOMR.warn("negative resp_lat: " + impl.timers["t_server"].end + " - " + impl.ti.responseEnd);
+        }
       }
     }
-    BOOMR.removeVar("t_done", "t_page", "t_resp", "r", "r2", "rt.tstart", "rt.bstart", "rt.end", "rt.ss", "rt.sl", "rt.lt", "t_postrender", "t_prerender", "t_load");
+    BOOMR.removeVar("req_lat", "resp_lat", "t_server", "t_done", "t_page", "t_resp", "r", "r2", "rt.tstart", "rt.bstart", "rt.end", "rt.ss", "rt.sl", "rt.lt", "t_postrender", "t_prerender", "t_load");
     BOOMR.addVar("rt.tstart", t_start);
     BOOMR.addVar("rt.bstart", BOOMR.t_start);
     BOOMR.addVar("rt.end", impl.timers["t_done"].end);
+    impl.getNavTimingOnlyNumbers();
     if (impl.timers["t_configfb"]) {
       if ("t_configfb" in impl.timers && typeof impl.timers["t_configfb"].start !== "number" || isNaN(impl.timers["t_configfb"].start)) {
         if ("t_configjs" in impl.timers && typeof impl.timers["t_configjs"].start === "number") {
@@ -890,9 +904,6 @@ function runrt(w) {
       BOOMR.addVar("r", BOOMR.utils.cleanupURL(impl.r));
       if (impl.r2 !== impl.r) {
         BOOMR.addVar("r2", BOOMR.utils.cleanupURL(impl.r2));
-      }
-      if (t_other.length) {
-        BOOMR.addVar("t_other", t_other.join(","));
       }
     }
     BOOMR.addVar({"rt.sid":impl.sessionID, "rt.ss":impl.sessionStart, "rt.sl":impl.sessionLength});
@@ -934,45 +945,6 @@ function memoryrun() {
   }};
 }
 memoryrun();
-function navtimingrun() {
-  BOOMR = BOOMR || {};
-  BOOMR.plugins = BOOMR.plugins || {};
-  var impl = {complete:false, done:function() {
-    var w = BOOMR.window, p, pn, pt;
-    var data;
-    p = w.performance || (w["msPerformance"] || (w["webkitPerformance"] || w["mozPerformance"]));
-    if (p && (p.timing && p.navigation)) {
-      BOOMR.info("This user agent supports NavigationTiming.", "nt");
-      pn = p.navigation;
-      pt = p.timing;
-      data = {"nt_red_cnt":pn.redirectCount, "nt_nav_type":pn.type, "nt_nav_st":pt.navigationStart, "nt_red_st":pt.redirectStart, "nt_red_end":pt.redirectEnd, "nt_fet_st":pt.fetchStart, "nt_dns_st":pt.domainLookupStart, "nt_dns_end":pt.domainLookupEnd, "nt_con_st":pt.connectStart, "nt_con_end":pt.connectEnd, "nt_req_st":pt.requestStart, "nt_res_st":pt.responseStart, "nt_res_end":pt.responseEnd, "nt_domloading":pt.domLoading, "nt_domint":pt.domInteractive, "nt_domcontloaded_st":pt.domContentLoadedEventStart, 
-      "nt_domcontloaded_end":pt.domContentLoadedEventEnd, "nt_domcomp":pt.domComplete, "nt_load_st":pt.loadEventStart, "nt_load_end":pt.loadEventEnd, "nt_unload_st":pt.unloadEventStart, "nt_unload_end":pt.unloadEventEnd};
-      if (pt.secureConnectionStart) {
-        data["nt_ssl_st"] = pt.secureConnectionStart;
-      }
-      if (pt.msFirstPaint) {
-        data["nt_first_paint"] = pt.msFirstPaint;
-      }
-      BOOMR.addVar(data);
-    }
-    if (w["chrome"] && w["chrome"].loadTimes) {
-      pt = w["chrome"].loadTimes();
-      if (pt) {
-        data = {"nt_spdy":pt.wasFetchedViaSpdy ? 1 : 0, "nt_first_paint":pt.firstPaintTime};
-        BOOMR.addVar(data);
-      }
-    }
-    impl.complete = true;
-    BOOMR.sendBeacon();
-  }};
-  var nt = BOOMR.plugins.NavigationTiming = {init:function() {
-    BOOMR.subscribe("page_ready", impl.done, null, impl);
-    return nt;
-  }, is_complete:function() {
-    return impl.complete;
-  }};
-}
-navtimingrun();
 (function() {
   var connection;
   if (typeof navigator === "object") {
@@ -984,30 +956,44 @@ navtimingrun();
     BOOMR.addVar("mob.mt", connection.metered);
   }
 })();
-function restimingrun() {
+function rtrestimingrun() {
   BOOMR = BOOMR || {};
   BOOMR.plugins = BOOMR.plugins || {};
-  var restricted = {redirectStart:"rt_red_st", redirectEnd:"rt_red_end", domainLookupStart:"rt_dns_st", domainLookupEnd:"rt_dns_end", connectStart:"rt_con_st", connectEnd:"rt_con_end", secureConnectionStart:"rt_scon_st", requestStart:"rt_req_st", responseStart:"rt_res_st"};
-  var restiming = "restiming";
+  var rtrestiming = "rtrestiming";
   var impl = {complete:false, done:function() {
     if (impl.complete) {
       return;
     }
-    var p = BOOMR.window.performance, r, i, k;
+    var p = BOOMR.window.performance, r, i;
     var data;
-    BOOMR.removeVar(restiming);
+    BOOMR.removeVar(rtrestiming);
     if (p && typeof p.getEntriesByType === "function") {
       r = p.getEntriesByType("resource");
       if (r) {
-        BOOMR.info("Client supports Resource Timing API", restiming);
+        BOOMR.info("Client supports Resource Timing API", rtrestiming);
         data = {};
-        data[restiming] = new Array(r.length);
+        var a = document.createElement("A"), resourceInfo;
+        data[rtrestiming] = new Array(r.length);
         for (i = 0;i < r.length;++i) {
-          data[restiming][i] = {"rt_name":r[i].name, "rt_in_type":r[i].initiatorType, "rt_st":r[i].startTime, "rt_dur":r[i].duration, "rt_fet_st":r[i].fetchStart, "rt_res_end":r[i].responseEnd};
-          for (k in restricted) {
-            if (restricted.hasOwnProperty(k) && r[i][k] > 0) {
-              data[restiming][i][restricted[k]] = r[i][k];
+          a.href = r[i].name;
+          resourceInfo = data[rtrestiming][i] = {"name":a.host == window.location.host ? a.pathname + a.search : r[i].name};
+          if (r[i].responseEnd > 0) {
+            resourceInfo["rt_total"] = Math.round(r[i].responseEnd - r[i].startTime);
+            if (r[i].responseStart) {
+              resourceInfo["rt_tansfer"] = Math.round(r[i].responseEnd - r[i].responseStart);
             }
+          }
+          if (r[i].domainLookupEnd && r[i].domainLookupStart) {
+            resourceInfo["rt_dns"] = Math.round(r[i].domainLookupEnd - r[i].domainLookupStart);
+          }
+          if (r[i].connectEnd && r[i].connectStart) {
+            resourceInfo["rt_tcp"] = Math.round(r[i].connectEnd - r[i].connectStart);
+          }
+          if (r[i].responseStart) {
+            resourceInfo["rt_ttfb"] = Math.round(r[i].responseStart - r[i].startTime);
+          }
+          if (r[i].redirectEnd && r[i].redirectStart) {
+            resourceInfo["rt_red"] = Math.round(r[i].redirectEnd - r[i].redirectStart);
           }
         }
         BOOMR.addVar(data);
@@ -1016,14 +1002,14 @@ function restimingrun() {
     impl.complete = true;
     BOOMR.sendBeacon();
   }};
-  var resourceTiming = BOOMR.plugins.ResourceTiming = {init:function() {
+  var rtResourceTiming = BOOMR.plugins.RTResourceTiming = {init:function() {
     BOOMR.subscribe("page_ready", impl.done, null, impl);
-    return resourceTiming;
+    return rtResourceTiming;
   }, is_complete:function() {
     return impl.complete;
-  }, varKey:restiming};
+  }, varKey:rtrestiming};
 }
-restimingrun();
+rtrestimingrun();
 function kylierun() {
   BOOMR = BOOMR || {};
   BOOMR.plugins = BOOMR.plugins || {};
@@ -1099,9 +1085,7 @@ var perfOptions = window["perfOptions"];
 if (!perfOptions) {
   perfOptions = {};
 }
-BOOMR.init({log:function(m, l, s) {
-  window.console.log(s + ": [" + l + "] " + m);
-}, wait:true, Kylie:{enabled:false}, ResourceTiming:{enabled:!!perfOptions["restiming"]}, autorun:false, beacon_url:perfOptions["bURL"]});
+BOOMR.init({wait:true, Kylie:{enabled:false}, ResourceTiming:{enabled:!!perfOptions["restiming"]}, autorun:false, beacon_url:perfOptions["bURL"]});
 if (perfOptions["pageStartTime"]) {
   BOOMR.plugins.RT.startTimer("t_page", perfOptions["pageStartTime"]);
 }
@@ -1164,8 +1148,8 @@ var Perf = {currentLogLevel:getLogLevel(perfOptions["logLevel"]), mark:function(
   if (includeMarks) {
     json.push("marks:{", markJson.join(","), "},");
   }
-  if (vars.hasOwnProperty(BOOMR.plugins.ResourceTiming.varKey) && window["JSON"]) {
-    json.push("restiming:{", JSON.stringify(vars[BOOMR.plugins.ResourceTiming.varKey]), "},");
+  if (vars.hasOwnProperty(BOOMR.plugins.RTResourceTiming.varKey) && window["JSON"]) {
+    json.push("restiming:{", JSON.stringify(vars[BOOMR.plugins.RTResourceTiming.varKey]), "},");
   }
   json.push("measures:[", measureJson.join(","), "]}");
   return json.join("");

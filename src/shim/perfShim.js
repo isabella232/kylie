@@ -23,7 +23,6 @@ if (!perfOptions) {
  * plugins are enabled default
  */
 BOOMR.init({
-    log: function(m, l, s) { window.console.log(s + ": [" + l + "] " + m); },
     /** @type {boolean} */
     wait: true,
     /** @type !Object.<string, boolean> */
@@ -225,8 +224,8 @@ var Perf = /** @lends {Perf} */ ({
         if (includeMarks) {
             json.push("marks:{", markJson.join(","), "},");
         }
-        if(vars.hasOwnProperty(BOOMR.plugins.ResourceTiming.varKey) && window["JSON"]) {
-            json.push("restiming:{", JSON.stringify(vars[BOOMR.plugins.ResourceTiming.varKey]),  "},");
+        if(vars.hasOwnProperty(BOOMR.plugins.RTResourceTiming.varKey) && window["JSON"]) {
+            json.push("restiming:{", JSON.stringify(vars[BOOMR.plugins.RTResourceTiming.varKey]),  "},");
         }
         json.push("measures:[", measureJson.join(","), "]}");
 
