@@ -54,6 +54,8 @@ function runrt(w) {
         // the back end decide
         /** @type {number} */
         navigationType : 0,
+        /** @type {number} */
+        redirectCount: 0,
         /** @type {number|undefined} */
         navigationStart : undefined,
         /** @type {number|undefined} */
@@ -277,6 +279,7 @@ function runrt(w) {
 
             if (p && p.navigation) {
                 impl.navigationType = p.navigation.type;
+                impl.redirectCount = p.navigation.redirectCount;
             }
 
             if (p && p.timing) {
@@ -316,8 +319,17 @@ function runrt(w) {
             } else {
                 BOOMR.warn("This browser doesn't support the WebTiming API", "rt");
             }
+        },
 
-            return;
+        /** @private */
+        getNavTimingOnlyNumbers: function () {
+            //Indicates that it contains navtiming numbers.
+            if(impl.ti.fetchStart !== undefined) {
+                BOOMR.plugins.RT.setTimer("t_dns", impl.ti.domainLookupEnd - impl.ti.domainLookupStart, impl.ti.domainLookupStart);
+                BOOMR.plugins.RT.setTimer("t_tcp", impl.ti.connectEnd - impl.ti.connectStart, impl.ti.connectStart);
+                BOOMR.addVar("nt_nav_type", impl.navigationType);
+                BOOMR.addVar("nt_red_cnt", impl.redirectCount);
+            }
         },
 
         /** @param {!Event} edata */
@@ -607,7 +619,7 @@ function runrt(w) {
          * This method sets the time that the server started processing the request and 
          * finished sending the response.
          *
-         * @param {number} startTime time in ms (in browser local time).
+         * @param {number} startTime time in ms (in UTC/GMT).
          * @param {number} delta The time spent on the server in ms (in browser local time).
          */
         setServerTime : function (startTime, delta) {
@@ -629,8 +641,7 @@ function runrt(w) {
                 t_done = new Date().getTime(),
                 ntimers = 0,
                 t_name,
-                timer,
-                t_other = [];
+                timer;
 
             impl.complete = false;
 
@@ -669,7 +680,6 @@ function runrt(w) {
                 rt.endTimer('t_prerender');
             }
 
-
             if (impl.navigationStart) {
                 t_start = impl.navigationStart;
             } else if (impl.t_start && impl.navigationType !== 2) {
@@ -696,15 +706,23 @@ function runrt(w) {
             if(impl.timers.hasOwnProperty("t_server")) {
                 rt.endTimer("req_lat", impl.timers["t_server"].start);
                 if(impl.ti.responseEnd) {
-                    rt.startTimer("resp_lat", impl.timers["t_server"].end).endTimer("resp_lat", impl.ti.responseEnd);
+                    var delta = impl.ti.responseEnd - impl.timers["t_server"].end;
+                    //Delta can be negative if the server and client clocks are out of sync.
+                    if(delta >= 0) {
+                        rt.setTimer("resp_lat", delta, impl.timers["t_server"].end);
+                    } else {
+                        BOOMR.warn("negative resp_lat: " + impl.timers["t_server"].end + " - " + impl.ti.responseEnd);
+                    }
                 }
             }
             // make sure old variables don't stick around
-            BOOMR.removeVar('t_done', 't_page', 't_resp', 'r', 'r2', 'rt.tstart', 'rt.bstart', 'rt.end', 'rt.ss', 'rt.sl', 'rt.lt', 't_postrender', 't_prerender', 't_load');
+            BOOMR.removeVar('req_lat', 'resp_lat', 't_server', 't_done', 't_page', 't_resp', 'r', 'r2', 'rt.tstart', 'rt.bstart', 'rt.end', 'rt.ss', 'rt.sl', 'rt.lt', 't_postrender', 't_prerender', 't_load');
 
             BOOMR.addVar('rt.tstart', t_start);
             BOOMR.addVar('rt.bstart', BOOMR.t_start);
             BOOMR.addVar('rt.end', impl.timers['t_done'].end); // don't just use t_done because dev may have called endTimer before we did
+
+            impl.getNavTimingOnlyNumbers();
 
             /* Config plugin support */
             if (impl.timers['t_configfb']) {
@@ -749,10 +767,6 @@ function runrt(w) {
 
                 if (impl.r2 !== impl.r) {
                     BOOMR.addVar("r2", BOOMR.utils.cleanupURL(impl.r2));
-                }
-
-                if (t_other.length) {
-                    BOOMR.addVar("t_other", t_other.join(','));
                 }
             }
 

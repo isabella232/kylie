@@ -103,6 +103,11 @@ var BOOMR;
 var BEACON_URL = "";
 
 /**
+ * @define {!string}
+ */
+var VERSION = "";
+
+/**
  * @param {!Window} w
  * @private
  */
@@ -326,7 +331,7 @@ function run(w) {
          * @type {!string}
          * @const
          */
-        version: "0.9",
+        version: VERSION,
 
         /**
          * @type {?Window}
