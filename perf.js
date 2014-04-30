@@ -1,4 +1,4 @@
-this[Perf]&&void 0!==this[Perf].enabled||(function(window){'use strict';/*
+this["Perf"]&&void 0!==this["Perf"].enabled||(function(window){'use strict';/*
  Copyright (c) 2011, Yahoo! Inc.  All rights reserved.
  Copyright (c) 2012, Log-Normal, Inc.  All rights reserved.
  Copyright (c) 2013, SOASTA, Inc. All rights reserved.
