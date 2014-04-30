@@ -15,7 +15,7 @@ SHIM := src/shim/perfEnums.js src/shim/perfShimClousreCompilerTypes.js src/shim/
 STUB := src/shim/perfEnums.js src/shim/perfShimClousreCompilerTypes.js src/shim/perfStubs.js
 
 BEACON_URL := ""
-ROOT_NAMESPACE := Perf
+ROOT_NAMESPACE := "Perf"
 IMPLEMENTATION_FILE_NAME := perf
 STUB_FILE_NAME := perfStub
 
