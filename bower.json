@@ -1,0 +1,40 @@
+{
+  "name": "Kylie",
+  "version": "1.0.0",
+  "homepage": "https://github.com/forcedotcom/kylie",
+  "authors": [
+    "Eric Perret (http://www.ericperrets.info)",
+    "Kiran Polavarapu"
+  ],
+  "description": "In browser library for recording end-user web performance metrics (RUM) and beaconing them to a REST API.",
+  "main": "perf.js",
+  "keywords": [
+    "RUM",
+    "boomerang",
+    "kylie",
+    "performance",
+    "navigation",
+    "timing",
+    "real",
+    "user",
+    "monitoring",
+    "beaconing"
+  ],
+  "license": "BSD",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests",
+    "prod-*/",
+    ".DS_Store",
+    "ClosureCompiler",
+    ".settings",
+    "doc",
+    "*.md",
+    ".project",
+    ".gitignore",
+    "Makefile"
+  ]
+}
