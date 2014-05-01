@@ -3,7 +3,7 @@
 # Copyrights licensed under the BSD License. See the accompanying LICENSE.txt file for terms.
 
 #Update each time the code changes.
-VERSION := 1.00.00
+VERSION := 1.0.0
 DATE := $(shell date +%s)
 
 PROD_DIRECTORY := prod-$(VERSION)-$(DATE)
