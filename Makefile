@@ -1,9 +1,13 @@
 # Copyright (c) 2011, Yahoo! Inc.  All rights reserved.
-# Copyright (c) 2013, Salesforce.com  All rights reserved.
+# Copyright (c) 2014, Salesforce.com  All rights reserved.
 # Copyrights licensed under the BSD License. See the accompanying LICENSE.txt file for terms.
 
 #Update each time the code changes.
-VERSION := 1.0.0
+BUILD_NUMBER := $(shell echo $$(( $(shell cat build-version.txt) + 1 )))
+MINOR_VERSION := 0
+MAJOR_VERSION := 1
+
+VERSION := $(MAJOR_VERSION).$(MINOR_VERSION).$(BUILD_NUMBER)
 DATE := $(shell date +%s)
 
 PROD_DIRECTORY := prod-$(VERSION)-$(DATE)
@@ -32,19 +36,19 @@ all: $(PROD_DIRECTORY)/$(IMPLEMENTATION_FILE_NAME).js
 usage:
 	echo "Create a release version of Kylie:"
 	echo "	make"
-	echo ""
+	echo
 	echo "Create a release version of Kylie with the rt, bw, dns, & kylie plugins:"
 	echo "	make PLUGINS=\"plugins/rt.js plugins/bw.js plugins/dns.js plugins/kylie.js\""
-	echo ""
+	echo
 	echo "Create a release version of Kylie with a custom beacon URL and root namespace:"
 	echo "	make BEACON_URL=\"/location/to/beacon/data/to\" ROOT_NAMESPACE=\"Ninja\""
-	echo ""
+	echo
 	echo "All of the major make arguments (all of which are optional)"
 	echo " BEACON_URL : The url where the collected data will be sent. By default it will use \"\"."
 	echo " ROOT_NAMESPACE : The name of the JavaScript object to which Kylie will be accessible from in the browser. Can be used to prevent name collisions. By default it will use \"Perf\"."
 	echo " IMPLEMENTATION_FILE_NAME : When building code this is the name of the resulting JS file, excluding the extension. By default it will use \"perf\"."
 	echo " STUB_FILE_NAME : The name of the no-op stub file, excluding the extension. By default it will use \"perfStub\"."
-	echo ""
+	echo
 
 $(PROD_DIRECTORY)/$(IMPLEMENTATION_FILE_NAME).js: $(PROD_DIRECTORY)/$(IMPLEMENTATION_FILE_NAME)-debug.js
 	echo "Making $@ ..."
@@ -66,7 +70,7 @@ $(PROD_DIRECTORY)/$(IMPLEMENTATION_FILE_NAME)-debug.js: $(PROD_DIRECTORY)/$(STUB
 	echo "done"
 	echo
 
-$(PROD_DIRECTORY)/$(STUB_FILE_NAME).js: makeProdDir
+$(PROD_DIRECTORY)/$(STUB_FILE_NAME).js: updateVersion
 	echo
 	echo "Making $@ ..."
 	echo "using stub: $(STUB)..."
@@ -74,7 +78,13 @@ $(PROD_DIRECTORY)/$(STUB_FILE_NAME).js: makeProdDir
 	echo "done"
 	echo
 
-makeProdDir: 
+updateVersion: makeProdDir
+	echo $(shell cat build-version.txt)
+	echo $(BUILD_NUMBER) > $(PROD_DIRECTORY)/build-version.txt
+	cp bower.json $(PROD_DIRECTORY)/bower.json
+	sed -i "" 's|"version": "[[:digit:].]*",|"version": "$(VERSION)",|' $(PROD_DIRECTORY)/bower.json
+
+makeProdDir:
 	echo
 	echo "Making $(PROD_DIRECTORY) ..."
 	mkdir $(PROD_DIRECTORY)

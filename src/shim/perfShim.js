@@ -23,6 +23,7 @@ if (!perfOptions) {
  * plugins are enabled default
  */
 BOOMR.init({
+    log: null,
     /** @type {boolean} */
     wait: true,
     /** @type !Object.<string, boolean> */
@@ -198,7 +199,7 @@ var Perf = /** @lends {Perf} */ ({
         // this is a hack to include RT in the beacon - sorry this is the quickest fix I could come up with.
         var timers = BOOMR.plugins.RT.getTimers(),
             rt = BOOMR.plugins.RT.getSessionStart(),
-            json = ["{", 'sessionID:"', BOOMR.plugins.RT.getSessionID(), '",', "st:", rt, ",", 'pn:"', window.document.URL, '",', 'uid:"', Math.round(Math.random() * 1000000000000000).toString(), '",'],
+            json = ['{sessionID:"', BOOMR.plugins.RT.getSessionID(), '",st:', rt, ',pn:"', window.document.URL, '",uid:"', Math.round(Math.random() * 1000000000000000).toString(), '",'],
             markJson = [],
             measureJson = [],
             k,
@@ -225,7 +226,7 @@ var Perf = /** @lends {Perf} */ ({
             json.push("marks:{", markJson.join(","), "},");
         }
         if(vars.hasOwnProperty(BOOMR.plugins.RTResourceTiming.varKey) && window["JSON"]) {
-            json.push("restiming:{", JSON.stringify(vars[BOOMR.plugins.RTResourceTiming.varKey]),  "},");
+            json.push("restiming:", JSON.stringify(vars[BOOMR.plugins.RTResourceTiming.varKey]),  ",");
         }
         json.push("measures:[", measureJson.join(","), "]}");
 

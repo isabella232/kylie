@@ -1085,7 +1085,7 @@ var perfOptions = window["perfOptions"];
 if (!perfOptions) {
   perfOptions = {};
 }
-BOOMR.init({wait:true, Kylie:{enabled:false}, ResourceTiming:{enabled:!!perfOptions["restiming"]}, autorun:false, beacon_url:perfOptions["bURL"]});
+BOOMR.init({log:null, wait:true, Kylie:{enabled:false}, ResourceTiming:{enabled:!!perfOptions["restiming"]}, autorun:false, beacon_url:perfOptions["bURL"]});
 if (perfOptions["pageStartTime"]) {
   BOOMR.plugins.RT.startTimer("t_page", perfOptions["pageStartTime"]);
 }
@@ -1129,7 +1129,7 @@ var Perf = {currentLogLevel:getLogLevel(perfOptions["logLevel"]), mark:function(
   return "{" + PerfConstants.MEASURE_NAME + ':"' + measure[PerfConstants.MEASURE_NAME] + '",' + PerfConstants.MARK_NAME + ':"' + measure[PerfConstants.MARK_NAME] + '",' + PerfConstants.ELAPSED_TIME + ":" + measure[PerfConstants.ELAPSED_TIME] + "," + PerfConstants.REFERENCE_TIME + ":" + measure[PerfConstants.REFERENCE_TIME] + "}";
 }, toJson:function(includeMarks) {
   BOOMR.plugins.RT.updateVars();
-  var timers = BOOMR.plugins.RT.getTimers(), rt = BOOMR.plugins.RT.getSessionStart(), json = ["{", 'sessionID:"', BOOMR.plugins.RT.getSessionID(), '",', "st:", rt, ",", 'pn:"', window.document.URL, '",', 'uid:"', Math.round(Math.random() * 1E15).toString(), '",'], markJson = [], measureJson = [], k, measure, vars = BOOMR.getVars(), timer;
+  var timers = BOOMR.plugins.RT.getTimers(), rt = BOOMR.plugins.RT.getSessionStart(), json = ['{sessionID:"', BOOMR.plugins.RT.getSessionID(), '",st:', rt, ',pn:"', window.document.URL, '",uid:"', Math.round(Math.random() * 1E15).toString(), '",'], markJson = [], measureJson = [], k, measure, vars = BOOMR.getVars(), timer;
   for (k in vars) {
     if (k != "r" && (k != "r2" && k != "t_other")) {
       if (vars.hasOwnProperty(k) && !isNaN(vars[k])) {
@@ -1149,7 +1149,7 @@ var Perf = {currentLogLevel:getLogLevel(perfOptions["logLevel"]), mark:function(
     json.push("marks:{", markJson.join(","), "},");
   }
   if (vars.hasOwnProperty(BOOMR.plugins.RTResourceTiming.varKey) && window["JSON"]) {
-    json.push("restiming:{", JSON.stringify(vars[BOOMR.plugins.RTResourceTiming.varKey]), "},");
+    json.push("restiming:", JSON.stringify(vars[BOOMR.plugins.RTResourceTiming.varKey]), ",");
   }
   json.push("measures:[", measureJson.join(","), "]}");
   return json.join("");

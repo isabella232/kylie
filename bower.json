@@ -1,6 +1,6 @@
 {
   "name": "Kylie",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homepage": "https://github.com/forcedotcom/kylie",
   "authors": [
     "Eric Perret (http://www.ericperrets.info)",
@@ -37,6 +37,7 @@
     "*.md",
     ".project",
     ".gitignore",
-    "Makefile"
+    "Makefile",
+    "build-version.txt"
   ]
 }
