@@ -688,7 +688,7 @@ function runrt(w) {
       BOOMR.warn("This browser doesn't support the WebTiming API", "rt");
     }
   }, getNavTimingOnlyNumbers:function() {
-    if (impl.ti.fetchStart !== undefined) {
+    if (impl.ti && impl.ti.fetchStart !== undefined) {
       BOOMR.plugins.RT.setTimer("t_dns", impl.ti.domainLookupEnd - impl.ti.domainLookupStart, impl.ti.domainLookupStart);
       BOOMR.plugins.RT.setTimer("t_tcp", impl.ti.connectEnd - impl.ti.connectStart, impl.ti.connectStart);
       BOOMR.addVar("nt_nav_type", impl.navigationType);

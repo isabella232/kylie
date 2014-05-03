@@ -324,7 +324,7 @@ function runrt(w) {
         /** @private */
         getNavTimingOnlyNumbers: function () {
             //Indicates that it contains navtiming numbers.
-            if(impl.ti.fetchStart !== undefined) {
+            if(impl.ti && (impl.ti.fetchStart !== undefined)) {
                 BOOMR.plugins.RT.setTimer("t_dns", impl.ti.domainLookupEnd - impl.ti.domainLookupStart, impl.ti.domainLookupStart);
                 BOOMR.plugins.RT.setTimer("t_tcp", impl.ti.connectEnd - impl.ti.connectStart, impl.ti.connectStart);
                 BOOMR.addVar("nt_nav_type", impl.navigationType);
