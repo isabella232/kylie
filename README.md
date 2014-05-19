@@ -43,7 +43,7 @@ Kylie can also capture the client-side time on the browser for a page. To accura
 
 If `pageStartTime` is not included on the page then a `new Date()` is instantiated after downloading/parsing perf.js and is used in it's place.
 
-### Adding Custom Measurements ##
+### Adding Custom Measurements ###
 
 Kylie can be used to measure the time it takes to load specific parts of a web page.  It is as simple as calling `Perf.mark("Twain")` to start the timer and `Perf.endMark("Twain")` to end the timer. This will capture the elapsed time of the instrumented code and a reference time that can be used to order it within the other metrics. All of this will be reported under the mark name "Twain".
 
