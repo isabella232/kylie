@@ -705,7 +705,7 @@ function runrt(w) {
             //Kylie implementation
             if(impl.timers.hasOwnProperty("t_server")) {
                 rt.endTimer("req_lat", impl.timers["t_server"].start);
-                if(impl.ti.responseEnd) {
+                if(impl.ti && impl.ti.responseEnd) {
                     var delta = impl.ti.responseEnd - impl.timers["t_server"].end;
                     //Delta can be negative if the server and client clocks are out of sync.
                     if(delta >= 0) {

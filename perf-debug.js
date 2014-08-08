@@ -859,7 +859,7 @@ function runrt(w) {
     rt.endTimer("t_done", t_done);
     if (impl.timers.hasOwnProperty("t_server")) {
       rt.endTimer("req_lat", impl.timers["t_server"].start);
-      if (impl.ti.responseEnd) {
+      if (impl.ti && impl.ti.responseEnd) {
         var delta = impl.ti.responseEnd - impl.timers["t_server"].end;
         if (delta >= 0) {
           rt.setTimer("resp_lat", delta, impl.timers["t_server"].end);
