@@ -2,7 +2,7 @@
 
 * Copyright (c) 2011, Yahoo! Inc. All rights reserved.
 * Some code Copyright (c) 2012, Log-Normal Inc. All rights reserved.
-* Some code Copyright (c) 2013, Salesforce.com. All rights reserved.
+* Some code Copyright (c) 2014, Salesforce.com. All rights reserved.
 
 Copyrights licensed under the BSD License. See the accompanying LICENSE.txt file for terms.
 
