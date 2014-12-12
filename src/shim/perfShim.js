@@ -18,11 +18,7 @@ if (!perfOptions) {
     perfOptions = { };
 }
 
-/**
- * Disable all plugins by default and only enable the needed through the config plugin Only SFDC config plugin, RT
- * plugins are enabled default
- */
-BOOMR.init({
+var defaultInit = {
     log: null,
     /** @type {boolean} */
     wait: true,
@@ -38,9 +34,15 @@ BOOMR.init({
     },
     /** @type {boolean} */
     autorun: false,
-    /** @type {!string|undefined} */
-    beacon_url: perfOptions["bURL"]
-});
+};
+/** @type {!string|undefined} */
+defaultInit[BOOMR.BEACON_URL_KEY] = perfOptions["bURL"]
+
+/**
+ * Disable all plugins by default and only enable the needed through the config plugin Only SFDC config plugin, RT
+ * plugins are enabled default
+ */
+BOOMR.init(defaultInit);
 
 if(perfOptions["pageStartTime"]) {
     BOOMR.plugins.RT.startTimer("t_page", perfOptions["pageStartTime"]);

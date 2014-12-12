@@ -43,7 +43,7 @@ IPlugin.prototype.is_complete;
  Copyrights licensed under the BSD License. See the accompanying LICENSE.txt file for terms.
 */
 var BOOMR_start = (new Date).getTime();
-function BOOMR_check_doc_domain(domain) {
+function boomr_check_doc_domain(domain) {
   var test;
   if (!domain) {
     if (window["parent"] === window || !document.getElementById("boomr-if-as")) {
@@ -66,9 +66,9 @@ function BOOMR_check_doc_domain(domain) {
   } catch (err) {
     domain = domain.replace(/^[\w-]+\./, "");
   }
-  return BOOMR_check_doc_domain(domain);
+  return boomr_check_doc_domain(domain);
 }
-BOOMR_check_doc_domain();
+boomr_check_doc_domain();
 var BOOMR;
 var BEACON_URL = "";
 var VERSION = "";
@@ -80,7 +80,12 @@ function run(w) {
   }
   var d = w.document;
   var perfOptions = w["perfOptions"] || {};
-  var impl = {beacon_url:BEACON_URL, beacon_type:"AUTO", site_domain:w.location.hostname.replace(/.*?([^.]+\.[^.]+)\.?$/, "$1").toLowerCase(), user_ip:"", strip_query_string:false, onloadfired:false, handlers_attached:false, events:{"page_ready":[], "page_unload":[], "dom_loaded":[], "onLoad":[], "visibility_changed":[], "before_beacon":[], "xhr_load":[], "click":[], "form_submit":[]}, vars:{}, disabled_plugins:{}, onclick_handler:function(ev) {
+  var BEACON_URL_KEY_INTERNAL = "bu";
+  var BEACON_TYPE_KEY_INTERNAL = "bt";
+  var SITE_DOMAIN_KEY_INTERNAL = "sd";
+  var USER_IP_KEY_INTERNAL = "uip";
+  var STRIP_QUERY_STRING_KEY_INTERNAL = "sqs";
+  var impl = {onloadfired:false, handlers_attached:false, events:{"page_ready":[], "page_unload":[], "dom_loaded":[], "onLoad":[], "visibility_changed":[], "before_beacon":[], "xhr_load":[], "click":[], "form_submit":[]}, vars:{}, disabled_plugins:{}, onclick_handler:function(ev) {
     var target;
     if (!ev) {
       ev = w.event;
@@ -127,7 +132,12 @@ function run(w) {
     }
     return true;
   }};
-  var boomr = {t_lstart:null, t_start:BOOMR_start, url:myurl, t_end:null, plugins:{}, version:VERSION, window:w, utils:{objectToString:function(o, separator) {
+  impl[BEACON_URL_KEY_INTERNAL] = BEACON_URL;
+  impl[BEACON_TYPE_KEY_INTERNAL] = "AUTO";
+  impl[SITE_DOMAIN_KEY_INTERNAL] = w.location.hostname.replace(/.*?([^.]+\.[^.]+)\.?$/, "$1").toLowerCase();
+  impl[USER_IP_KEY_INTERNAL] = "";
+  impl[STRIP_QUERY_STRING_KEY_INTERNAL] = false;
+  var boomr = {BEACON_URL_KEY:BEACON_URL_KEY_INTERNAL, BEACON_TYPE_KEY:BEACON_TYPE_KEY_INTERNAL, SITE_DOMAIN_KEY:SITE_DOMAIN_KEY_INTERNAL, USER_IP_KEY:USER_IP_KEY_INTERNAL, STRIP_QUERY_STRING_KEY:STRIP_QUERY_STRING_KEY_INTERNAL, t_lstart:null, t_start:BOOMR_start, url:myurl, t_end:null, plugins:{}, version:VERSION, window:w, utils:{objectToString:function(o, separator) {
     var value = [], l;
     if (!o || typeof o !== "object") {
       return o;
@@ -156,13 +166,13 @@ function run(w) {
     return null;
   }, setCookie:function(name, subcookies, max_age) {
     var value, nameval, c, exp;
-    if (!name || !impl.site_domain) {
-      boomr.debug("No cookie name or site domain: " + name + "/" + impl.site_domain);
+    if (!name || !impl[boomr.SITE_DOMAIN_KEY]) {
+      boomr.debug("No cookie name or site domain: " + name + "/" + impl[boomr.SITE_DOMAIN_KEY]);
       return false;
     }
     value = boomr.utils.objectToString(subcookies, "&");
     nameval = name + "=" + value;
-    c = [nameval, "path=/", "domain=" + impl.site_domain];
+    c = [nameval, "path=/", "domain=" + impl[boomr.SITE_DOMAIN_KEY]];
     if (max_age) {
       exp = new Date;
       exp.setTime(exp.getTime() + max_age * 1E3);
@@ -202,7 +212,7 @@ function run(w) {
   }, removeCookie:function(name) {
     return boomr.utils.setCookie(name, {}, -86400);
   }, cleanupURL:function(url) {
-    if (impl.strip_query_string && url) {
+    if (impl[boomr.STRIP_QUERY_STRING_KEY] && url) {
       return url.replace(/\?.*/, "?qs-redacted");
     }
     return url;
@@ -263,7 +273,7 @@ function run(w) {
     iframe.name = "boomerang_post";
     iframe.style.display = form.style.display = "none";
     form.method = "POST";
-    form.action = impl.beacon_url;
+    form.action = impl[boomr.BEACON_URL_KEY];
     form.target = iframe.name;
     input.name = "data";
     if (window["JSON"]) {
@@ -282,8 +292,9 @@ function run(w) {
     });
     form.submit();
   }}, init:function(config) {
-    var i, l, properties = ["beacon_url", "beacon_type", "site_domain", "user_ip", "strip_query_string"];
-    BOOMR_check_doc_domain();
+    var i, l;
+    var properties = [BEACON_URL_KEY_INTERNAL, BEACON_TYPE_KEY_INTERNAL, SITE_DOMAIN_KEY_INTERNAL, USER_IP_KEY_INTERNAL, STRIP_QUERY_STRING_KEY_INTERNAL];
+    boomr_check_doc_domain();
     if (!config) {
       config = {};
     }
@@ -492,7 +503,7 @@ function run(w) {
       impl.vars["if"] = "";
     }
     impl.fireEvent("before_beacon", impl.vars);
-    if (!impl.beacon_url) {
+    if (!impl[BEACON_URL_KEY_INTERNAL]) {
       return boomr;
     }
     data = [];
@@ -501,11 +512,11 @@ function run(w) {
       return boomr;
     }
     data = data.join("&");
-    if (impl.beacon_type === "POST") {
+    if (impl[BEACON_TYPE_KEY_INTERNAL] === "POST") {
       boomr.utils.postData(data);
     } else {
-      url = impl.beacon_url + (impl.beacon_url.indexOf("?") > -1 ? "&" : "?") + data;
-      if (url.length > 2E3 && impl.beacon_type === "AUTO") {
+      url = impl[BEACON_URL_KEY_INTERNAL] + (impl[BEACON_URL_KEY_INTERNAL].indexOf("?") > -1 ? "&" : "?") + data;
+      if (url.length > 2E3 && impl[BEACON_TYPE_KEY_INTERNAL] === "AUTO") {
         boomr.utils.postData(data);
       } else {
         boomr.debug("Sending url: " + url.replace(/&/g, "\n\t"));
@@ -1085,7 +1096,9 @@ var perfOptions = window["perfOptions"];
 if (!perfOptions) {
   perfOptions = {};
 }
-BOOMR.init({log:null, wait:true, Kylie:{enabled:false}, ResourceTiming:{enabled:!!perfOptions["restiming"]}, autorun:false, beacon_url:perfOptions["bURL"]});
+var defaultInit = {log:null, wait:true, Kylie:{enabled:false}, ResourceTiming:{enabled:!!perfOptions["restiming"]}, autorun:false};
+defaultInit[BOOMR.BEACON_URL_KEY] = perfOptions["bURL"];
+BOOMR.init(defaultInit);
 if (perfOptions["pageStartTime"]) {
   BOOMR.plugins.RT.startTimer("t_page", perfOptions["pageStartTime"]);
 }

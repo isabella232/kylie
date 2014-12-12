@@ -46,7 +46,7 @@ var BOOMR_start = new Date().getTime();
  * @return {!boolean}
  * @private
  */
-function BOOMR_check_doc_domain(domain) {
+function boomr_check_doc_domain(domain) {
     var test;
 
     // If domain is not passed in, then this is a global call
@@ -66,7 +66,7 @@ function BOOMR_check_doc_domain(domain) {
     }
 
     // 1. Test without setting document.domain
-   try {
+    try {
         test = window["parent"]["document"];
         return true;    // all okay
     }
@@ -83,10 +83,9 @@ function BOOMR_check_doc_domain(domain) {
         domain = domain.replace(/^[\w-]+\./, '');
     }
 
-    return BOOMR_check_doc_domain(domain);
+    return boomr_check_doc_domain(domain);
 }
-
-BOOMR_check_doc_domain();
+boomr_check_doc_domain();
 
 /**
  * Short namespace because I don't want to keep typing BOOMERANG
@@ -137,6 +136,37 @@ function run(w) {
     var perfOptions = w["perfOptions"] || {};
 
     /**
+     * @type {!string}
+     * @private
+     * @const
+     */
+    var BEACON_URL_KEY_INTERNAL = "bu";
+    /**
+     * @type {!string}
+     * @private
+     * @const
+     */
+    var BEACON_TYPE_KEY_INTERNAL = "bt";
+    /**
+     * @type {!string}
+     * @private
+     * @const
+     */
+    var SITE_DOMAIN_KEY_INTERNAL = "sd";
+    /**
+     * @type {!string}
+     * @private
+     * @const
+     */
+    var USER_IP_KEY_INTERNAL = "uip";
+    /**
+     * @type {!string}
+     * @private
+     * @const
+     */
+    var STRIP_QUERY_STRING_KEY_INTERNAL = "sqs";
+
+    /**
      * impl is a private object not reachable from outside the BOOMR object
      * users can set properties by passing in to the init() method
      * 
@@ -145,46 +175,6 @@ function run(w) {
      */
     var impl = {
         // properties
-        /**
-         * @type {!string}
-         * @private
-         */
-        beacon_url: BEACON_URL,
-
-        /**
-         * beacon request method, either GET, POST or AUTO. AUTO will check the
-         * request size then use GET if the request URL is less than 2000 chars
-         * otherwise it will fall back to a POST request.
-         *
-         * @type {!string}
-         * @private
-         */
-         beacon_type: "AUTO",
-
-        /**
-         * strip out everything except last two parts of hostname.
-         * This doesn't work well for domains that end with a country tld,
-         * but we allow the developer to override site_domain for that.
-         * You can disable all cookies by setting site_domain to a falsy value
-         * 
-         * @type {!string}
-         * @private
-         */
-        site_domain: w.location.hostname.replace(/.*?([^.]+\.[^.]+)\.?$/, "$1").toLowerCase(),
-
-        /**
-         * User's ip address determined on the server. Used for the BA cookie
-         * 
-         * @type {!string}
-         * @private
-         */
-        user_ip: "",
-
-        /**
-         * @type {!boolean}
-         * @private
-         */
-        strip_query_string: false,
 
         /** 
          * @type {boolean}
@@ -296,6 +286,42 @@ function run(w) {
             return true;
         }
     };
+    /**
+     * @type {!string}
+     * @private
+     */
+    impl[BEACON_URL_KEY_INTERNAL] = BEACON_URL;
+    /**
+     * beacon request method, either GET, POST or AUTO. AUTO will check the
+     * request size then use GET if the request URL is less than 2000 chars
+     * otherwise it will fall back to a POST request.
+     *
+     * @type {!string}
+     * @private
+     */
+    impl[BEACON_TYPE_KEY_INTERNAL] = "AUTO";
+    /**
+     * strip out everything except last two parts of hostname.
+     * This doesn't work well for domains that end with a country tld,
+     * but we allow the developer to override site_domain for that.
+     * You can disable all cookies by setting site_domain to a falsy value
+     * 
+     * @type {!string}
+     * @private
+     */
+    impl[SITE_DOMAIN_KEY_INTERNAL] = w.location.hostname.replace(/.*?([^.]+\.[^.]+)\.?$/, "$1").toLowerCase();
+    /**
+     * User's ip address determined on the server. Used for the BA cookie
+     * 
+     * @type {!string}
+     * @private
+     */
+    impl[USER_IP_KEY_INTERNAL] = "";
+    /**
+     * @type {!boolean}
+     * @private
+     */
+    impl[STRIP_QUERY_STRING_KEY_INTERNAL] = false;
 
     /**
      * We create a boomr object and then copy all its properties to BOOMR so that
@@ -307,6 +333,31 @@ function run(w) {
      * @type {!IBOOMR}
      */
     var boomr = /** @lends {boomr} */ {
+        /**
+         * @type {!string}
+         * @const
+         */
+        BEACON_URL_KEY: BEACON_URL_KEY_INTERNAL,
+        /**
+         * @type {!string}
+         * @const
+         */
+        BEACON_TYPE_KEY: BEACON_TYPE_KEY_INTERNAL,
+        /**
+         * @type {!string}
+         * @const
+         */
+        SITE_DOMAIN_KEY: SITE_DOMAIN_KEY_INTERNAL,
+        /**
+         * @type {!string}
+         * @const
+         */
+        USER_IP_KEY: USER_IP_KEY_INTERNAL,
+        /**
+         * @type {!string}
+         * @const
+         */
+        STRIP_QUERY_STRING_KEY: STRIP_QUERY_STRING_KEY_INTERNAL,
         /**
          * @type {number|null}
          */
@@ -402,15 +453,15 @@ function run(w) {
             setCookie: function (name, subcookies, max_age) {
                 var value, nameval, c, exp;
 
-                if (!name || !impl.site_domain) {
-                    boomr.debug("No cookie name or site domain: " + name + "/" + impl.site_domain);
+                if (!name || !impl[boomr.SITE_DOMAIN_KEY]) {
+                    boomr.debug("No cookie name or site domain: " + name + "/" + impl[boomr.SITE_DOMAIN_KEY]);
                     return false;
                 }
 
                 value = boomr.utils.objectToString(subcookies, "&");
                 nameval = name + "=" + value;
 
-                c = [nameval, "path=/", "domain=" + impl.site_domain];
+                c = [nameval, "path=/", "domain=" + impl[boomr.SITE_DOMAIN_KEY]];
                 if (max_age) {
                     exp = new Date();
                     exp.setTime(exp.getTime() + max_age * 1000);
@@ -487,7 +538,7 @@ function run(w) {
              * @return {string} 
              */
             cleanupURL: function (url) {
-                if (impl.strip_query_string && url) {
+                if (impl[boomr.STRIP_QUERY_STRING_KEY] && url) {
                     return url.replace(/\?.*/, '?qs-redacted');
                 }
                 return url;
@@ -607,7 +658,7 @@ function run(w) {
                 iframe.style.display = form.style.display = "none";
 
                 form.method = "POST";
-                form.action = impl.beacon_url;
+                form.action = impl[boomr.BEACON_URL_KEY];
                 form.target = iframe.name;
 
                 input.name = "data";
@@ -641,10 +692,15 @@ function run(w) {
          */
         init: function (config) {
             var i,
-                l,
-                properties = ["beacon_url", "beacon_type", "site_domain", "user_ip", "strip_query_string"];
+                l;
 
-            BOOMR_check_doc_domain();
+            /**
+             * @type {!Array.<string>}
+             * @const
+             */
+            var properties = [BEACON_URL_KEY_INTERNAL, BEACON_TYPE_KEY_INTERNAL, SITE_DOMAIN_KEY_INTERNAL, USER_IP_KEY_INTERNAL, STRIP_QUERY_STRING_KEY_INTERNAL];
+
+            boomr_check_doc_domain();
 
             if (!config) {
                 config = {};
@@ -985,7 +1041,7 @@ function run(w) {
             // Don't send a beacon if no beacon_url has been set
             // you would do this if you want to do some fancy beacon handling
             // in the `before_beacon` event instead of a simple GET request
-            if (!impl.beacon_url) {
+            if (!impl[BEACON_URL_KEY_INTERNAL]) {
                 return boomr;
             }
 
@@ -999,17 +1055,17 @@ function run(w) {
 
             data = data.join("&");
 
-            if (impl.beacon_type === 'POST') {
+            if (impl[BEACON_TYPE_KEY_INTERNAL] === 'POST') {
                 boomr.utils.postData(data);
             } else {
 
                 // if there are already url parameters in the beacon url,
                 // change the first parameter prefix for the boomerang url parameters to &
-                url = impl.beacon_url + ((impl.beacon_url.indexOf("?") > -1) ? "&" : "?") + data;
+                url = impl[BEACON_URL_KEY_INTERNAL] + ((impl[BEACON_URL_KEY_INTERNAL].indexOf("?") > -1) ? "&" : "?") + data;
 
                 // using 2000 here as a de facto maximum URL length based on:
                 // http://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers
-                if (url.length > 2000 && impl.beacon_type === "AUTO") {
+                if (url.length > 2000 && impl[BEACON_TYPE_KEY_INTERNAL] === "AUTO") {
                     boomr.utils.postData(data);
                 } else {
                     boomr.debug("Sending url: " + url.replace(/&/g, "\n\t"));
