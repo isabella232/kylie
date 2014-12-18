@@ -14,7 +14,7 @@ function IBOOMR() {}
 IBOOMR.prototype.version;
 
 /**
- * @type {?Window}
+ * @type {!Window}
  */
 IBOOMR.prototype.window;
 

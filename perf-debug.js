@@ -72,14 +72,14 @@ boomr_check_doc_domain();
 var BOOMR;
 var BEACON_URL = "";
 var VERSION = "";
-function run(w) {
+function run() {
   var myurl;
-  if (w.parent !== w && (document.getElementById("boomr-if-as") && document.getElementById("boomr-if-as").nodeName.toLowerCase() === "script")) {
-    w = w.parent;
+  if (window.parent !== window && document.getElementById("boomr-if-as") && document.getElementById("boomr-if-as").nodeName.toLowerCase() === "script") {
+    window = window.parent;
     myurl = document.getElementById("boomr-if-as").src;
   }
-  var d = w.document;
-  var perfOptions = w["perfOptions"] || {};
+  var d = window.document;
+  var perfOptions = window["perfOptions"] || {};
   var BEACON_URL_KEY_INTERNAL = "bu";
   var BEACON_TYPE_KEY_INTERNAL = "bt";
   var SITE_DOMAIN_KEY_INTERNAL = "sd";
@@ -88,7 +88,7 @@ function run(w) {
   var impl = {onloadfired:false, handlers_attached:false, events:{"page_ready":[], "page_unload":[], "dom_loaded":[], "onLoad":[], "visibility_changed":[], "before_beacon":[], "xhr_load":[], "click":[], "form_submit":[]}, vars:{}, disabled_plugins:{}, onclick_handler:function(ev) {
     var target;
     if (!ev) {
-      ev = w.event;
+      ev = window.event;
     }
     if (ev.target) {
       target = ev.target;
@@ -107,7 +107,7 @@ function run(w) {
   }, onsubmit_handler:function(ev) {
     var target;
     if (!ev) {
-      ev = w.event;
+      ev = window.event;
     }
     if (ev.target) {
       target = ev.target;
@@ -134,10 +134,10 @@ function run(w) {
   }};
   impl[BEACON_URL_KEY_INTERNAL] = BEACON_URL;
   impl[BEACON_TYPE_KEY_INTERNAL] = "AUTO";
-  impl[SITE_DOMAIN_KEY_INTERNAL] = w.location.hostname.replace(/.*?([^.]+\.[^.]+)\.?$/, "$1").toLowerCase();
+  impl[SITE_DOMAIN_KEY_INTERNAL] = window.location.hostname.replace(/.*?([^.]+\.[^.]+)\.?$/, "$1").toLowerCase();
   impl[USER_IP_KEY_INTERNAL] = "";
   impl[STRIP_QUERY_STRING_KEY_INTERNAL] = false;
-  var boomr = {BEACON_URL_KEY:BEACON_URL_KEY_INTERNAL, BEACON_TYPE_KEY:BEACON_TYPE_KEY_INTERNAL, SITE_DOMAIN_KEY:SITE_DOMAIN_KEY_INTERNAL, USER_IP_KEY:USER_IP_KEY_INTERNAL, STRIP_QUERY_STRING_KEY:STRIP_QUERY_STRING_KEY_INTERNAL, t_lstart:null, t_start:BOOMR_start, url:myurl, t_end:null, plugins:{}, version:VERSION, window:w, utils:{objectToString:function(o, separator) {
+  var boomr = {BEACON_URL_KEY:BEACON_URL_KEY_INTERNAL, BEACON_TYPE_KEY:BEACON_TYPE_KEY_INTERNAL, SITE_DOMAIN_KEY:SITE_DOMAIN_KEY_INTERNAL, USER_IP_KEY:USER_IP_KEY_INTERNAL, STRIP_QUERY_STRING_KEY:STRIP_QUERY_STRING_KEY_INTERNAL, t_lstart:null, t_start:BOOMR_start, url:myurl, t_end:null, plugins:{}, version:VERSION, window:window, utils:{objectToString:function(o, separator) {
     var value = [], l;
     if (!o || typeof o !== "object") {
       return o;
@@ -312,7 +312,7 @@ function run(w) {
     }
     for (l in boomr.plugins) {
       if (boomr.plugins.hasOwnProperty(l)) {
-        if (config[l] && (config[l].hasOwnProperty("enabled") && config[l].enabled === false)) {
+        if (config[l] && config[l].hasOwnProperty("enabled") && config[l].enabled === false) {
           impl.disabled_plugins[l] = 1;
           continue;
         }
@@ -331,14 +331,14 @@ function run(w) {
       if (d.readyState && d.readyState === "complete") {
         boomr.setImmediate(boomr.page_ready, null, null, boomr);
       } else {
-        if (w["onpagehide"] || w["onpagehide"] === null) {
-          boomr.utils.addListener(w, "pageshow", boomr.page_ready);
+        if (window["onpagehide"] || window["onpagehide"] === null) {
+          boomr.utils.addListener(window, "pageshow", boomr.page_ready);
         } else {
-          boomr.utils.addListener(w, "load", boomr.page_ready);
+          boomr.utils.addListener(window, "load", boomr.page_ready);
         }
       }
     }
-    boomr.utils.addListener(w, "DOMContentLoaded", function() {
+    boomr.utils.addListener(window, "DOMContentLoaded", function() {
       impl.fireEvent("dom_loaded");
     });
     (function() {
@@ -362,8 +362,8 @@ function run(w) {
       for (iterator = 0;iterator < forms.length;iterator++) {
         boomr.utils.addListener(forms[iterator], "submit", impl.onsubmit_handler);
       }
-      if (!w["onpagehide"] && w["onpagehide"] !== null) {
-        boomr.utils.addListener(w, "unload", function() {
+      if (!window["onpagehide"] && window["onpagehide"] !== null) {
+        boomr.utils.addListener(window, "unload", function() {
           delete boomr.window;
         });
       }
@@ -373,7 +373,7 @@ function run(w) {
   }, page_ready:function(ev) {
     var ev2 = ev;
     if (!ev2) {
-      ev2 = w.event;
+      ev2 = window.event;
     }
     if (!ev2) {
       ev2 = {name:"load"};
@@ -389,17 +389,17 @@ function run(w) {
       fn.call(cb_scope || null, data, cb_data || {});
       cb = null;
     };
-    if (w.setImmediate) {
-      w.setImmediate(cb);
+    if (window.setImmediate) {
+      window.setImmediate(cb);
     } else {
-      if (w["msSetImmediate"]) {
-        w["msSetImmediate"](cb);
+      if (window["msSetImmediate"]) {
+        window["msSetImmediate"](cb);
       } else {
-        if (w["webkitSetImmediate"]) {
-          w["webkitSetImmediate"](cb);
+        if (window["webkitSetImmediate"]) {
+          window["webkitSetImmediate"](cb);
         } else {
-          if (w["mozSetImmediate"]) {
-            w["mozSetImmediate"](cb);
+          if (window["mozSetImmediate"]) {
+            window["mozSetImmediate"](cb);
           } else {
             setTimeout(cb, 10);
           }
@@ -414,7 +414,7 @@ function run(w) {
     e = impl.events[e_name];
     for (i = 0;i < e.length;i++) {
       h = e[i];
-      if (h[0] === fn && (h[1] === cb_data && h[2] === cb_scope)) {
+      if (h[0] === fn && h[1] === cb_data && h[2] === cb_scope) {
         return boomr;
       }
     }
@@ -425,15 +425,15 @@ function run(w) {
     if (e_name === "page_unload") {
       unload_handler = function(ev) {
         if (fn) {
-          fn.call(cb_scope, ev || w.event, cb_data);
+          fn.call(cb_scope, ev || window.event, cb_data);
         }
       };
-      if (w["onpagehide"] || w["onpagehide"] === null) {
-        boomr.utils.addListener(w, "pagehide", unload_handler);
+      if (window["onpagehide"] || window["onpagehide"] === null) {
+        boomr.utils.addListener(window, "pagehide", unload_handler);
       } else {
-        boomr.utils.addListener(w, "unload", unload_handler);
+        boomr.utils.addListener(window, "unload", unload_handler);
       }
-      boomr.utils.addListener(w, "beforeunload", unload_handler);
+      boomr.utils.addListener(window, "beforeunload", unload_handler);
     }
     return boomr;
   }, addVar:function(name, value) {
@@ -499,9 +499,6 @@ function run(w) {
     }
     impl.vars["v"] = boomr.version;
     impl.vars["u"] = boomr.utils.cleanupURL(d.URL.replace(/#.*/, ""));
-    if (w !== window) {
-      impl.vars["if"] = "";
-    }
     impl.fireEvent("before_beacon", impl.vars);
     if (!impl[BEACON_URL_KEY_INTERNAL]) {
       return boomr;
@@ -537,11 +534,11 @@ function run(w) {
   }
   delete perfOptions["BOOMR_lstart"];
   (function() {
-    if (w.YAHOO && (w.YAHOO.widget && w.YAHOO.widget.Logger)) {
-      boomr.log = w.YAHOO.log;
+    if (window["YAHOO"] && window["YAHOO"]["widget"] && window["YAHOO"]["widget"]["Logger"]) {
+      boomr.log = window["YAHOO"]["log"];
     } else {
-      if (w.Y && w.Y.log) {
-        boomr.log = w.Y.log;
+      if (window["Y"] && window["Y"]["log"]) {
+        boomr.log = window["Y"]["log"];
       } else {
         if (typeof window.console === "object" && window.console.log !== undefined) {
           boomr.log = function(m, l, s) {
@@ -551,10 +548,11 @@ function run(w) {
       }
     }
     function make_logger(l) {
-      return function(m, s) {
+      function anon(m, s) {
         boomr.log(m, l, "boomerang" + (s ? "." + s : ""));
         return boomr;
-      };
+      }
+      return anon;
     }
     boomr.debug = make_logger("debug");
     boomr.info = make_logger("info");
@@ -563,9 +561,9 @@ function run(w) {
   })();
   BOOMR = boomr;
 }
-run(window);
-function runrt(w) {
-  var d = w.document;
+run();
+function runrt() {
+  var d = window.document;
   BOOMR = BOOMR || {};
   BOOMR.plugins = BOOMR.plugins || {};
   var impl = {initialized:false, onloadfired:false, visiblefired:false, complete:false, timers:{}, cookie:"RT", cookie_exp:1800, strict_referrer:false, navigationType:0, redirectCount:0, navigationStart:undefined, responseStart:undefined, ti:undefined, sessionID:Math.floor(Math.random() * 4294967296).toString(36), sessionStart:undefined, sessionLength:0, t_start:undefined, t_fb_approx:undefined, r:null, r2:null, updateCookie:function(params, timer) {
@@ -618,7 +616,7 @@ function runrt(w) {
       BOOMR.debug(impl.r + " =?= " + impl.r2, "rt");
       BOOMR.debug(subcookies["s"] + " <? " + (+subcookies["cl"] + 15), "rt");
       BOOMR.debug(subcookies["nu"] + " =?= " + url, "rt");
-      if (!impl.strict_referrer || (subcookies["nu"] && (subcookies["nu"] === url && subcookies["s"] < +subcookies["cl"] + 15) || subcookies["s"] === +subcookies["ul"] && impl.r === impl.r2)) {
+      if (!impl.strict_referrer || subcookies["nu"] && subcookies["nu"] === url && subcookies["s"] < +subcookies["cl"] + 15 || subcookies["s"] === +subcookies["ul"] && impl.r === impl.r2) {
         impl.t_start = subcookies["s"];
         if (+subcookies["hd"] > subcookies["s"]) {
           impl.t_fb_approx = parseInt(subcookies["hd"], 10);
@@ -670,7 +668,7 @@ function runrt(w) {
     if (impl.navigationStart) {
       return;
     }
-    p = w.performance || (w["msPerformance"] || (w["webkitPerformance"] || w["mozPerformance"]));
+    p = window.performance || window["msPerformance"] || window["webkitPerformance"] || window["mozPerformance"];
     if (p && p.navigation) {
       impl.navigationType = p.navigation.type;
       impl.redirectCount = p.navigation.redirectCount;
@@ -678,22 +676,22 @@ function runrt(w) {
     if (p && p.timing) {
       impl.ti = p.timing;
     } else {
-      if (w.chrome && (w.chrome.csi && w.chrome.csi().startE)) {
-        impl.ti = {navigationStart:w.chrome.csi().startE};
+      if (window["chrome"] && window["chrome"].csi && window["chrome"].csi().startE) {
+        impl.ti = {navigationStart:window["chrome"].csi().startE};
         source = "csi";
       } else {
-        if (w.gtbExternal && w.gtbExternal.startE()) {
-          impl.ti = {navigationStart:w.gtbExternal.startE()};
+        if (window["gtbExternal"] && window["gtbExternal"].startE()) {
+          impl.ti = {navigationStart:window["gtbExternal"].startE()};
           source = "gtb";
         }
       }
     }
     if (impl.ti) {
       BOOMR.addVar("rt.start", source || "navigation");
-      impl.navigationStart = impl.ti.navigationStart || (impl.ti.fetchStart || undefined);
+      impl.navigationStart = impl.ti.navigationStart || impl.ti.fetchStart || undefined;
       impl.responseStart = impl.ti.responseStart || undefined;
       if (navigator.userAgent.match(/Firefox\/[78]\./)) {
-        impl.navigationStart = impl.ti.unloadEventStart || (impl.ti.fetchStart || undefined);
+        impl.navigationStart = impl.ti.unloadEventStart || impl.ti.fetchStart || undefined;
       }
     } else {
       BOOMR.warn("This browser doesn't support the WebTiming API", "rt");
@@ -736,9 +734,9 @@ function runrt(w) {
   }};
   var rt = BOOMR.plugins.RT = {init:function(config) {
     BOOMR.debug("init RT", "rt");
-    if (w !== BOOMR.window) {
-      w = BOOMR.window;
-      d = w.document;
+    if (window !== BOOMR.window) {
+      window = BOOMR.window;
+      d = window.document;
     }
     BOOMR.utils.pluginConfig(impl, config, "RT", ["cookie", "cookie_exp", "strict_referrer"]);
     impl.r = impl.r2 = BOOMR.utils.hashQueryString(d.referrer, true);
@@ -926,7 +924,7 @@ function runrt(w) {
     return impl.complete;
   }};
 }
-runrt(window);
+runrt();
 function memoryrun() {
   BOOMR = BOOMR || {};
   BOOMR.plugins = BOOMR.plugins || {};
@@ -937,7 +935,7 @@ function memoryrun() {
         return fn(tag);
       } : fn;
       m = p && p.memory ? p.memory : c && c.memory ? c.memory : null;
-      if (p && (p.getEntries && p.getEntries().length)) {
+      if (p && p.getEntries && p.getEntries().length) {
         BOOMR.addVar("dom.res", p.getEntries().length);
       }
       if (m) {
@@ -959,7 +957,7 @@ memoryrun();
 (function() {
   var connection;
   if (typeof navigator === "object") {
-    connection = navigator["connection"] || (navigator["mozConnection"] || (navigator["webkitConnection"] || navigator["msConnection"]));
+    connection = navigator["connection"] || navigator["mozConnection"] || navigator["webkitConnection"] || navigator["msConnection"];
   }
   if (connection) {
     BOOMR.addVar("mob.ct", connection.type);
@@ -1144,7 +1142,7 @@ var Perf = {currentLogLevel:getLogLevel(perfOptions["logLevel"]), mark:function(
   BOOMR.plugins.RT.updateVars();
   var timers = BOOMR.plugins.RT.getTimers(), rt = BOOMR.plugins.RT.getSessionStart(), json = ['{sessionID:"', BOOMR.plugins.RT.getSessionID(), '",st:', rt, ',pn:"', window.document.URL, '",uid:"', Math.round(Math.random() * 1E15).toString(), '",'], markJson = [], measureJson = [], k, measure, vars = BOOMR.getVars(), timer;
   for (k in vars) {
-    if (k != "r" && (k != "r2" && k != "t_other")) {
+    if (k != "r" && k != "r2" && k != "t_other") {
       if (vars.hasOwnProperty(k) && !isNaN(vars[k])) {
         if (includeMarks) {
           markJson.push('"' + k + '":' + vars[k]);
@@ -1172,7 +1170,7 @@ var Perf = {currentLogLevel:getLogLevel(perfOptions["logLevel"]), mark:function(
   BOOMR.plugins.RT.updateVars();
   var timers = BOOMR.plugins.RT.getTimers(), rt = BOOMR.plugins.RT.getSessionStart(), measures = [], vars = BOOMR.getVars(), k, measure;
   for (k in vars) {
-    if (k != "r" && (k != "r2" && k != "t_other")) {
+    if (k != "r" && k != "r2" && k != "t_other") {
       if (vars.hasOwnProperty(k) && !isNaN(vars[k])) {
         measure = {};
         measure[PerfConstants.MEASURE_NAME] = k;

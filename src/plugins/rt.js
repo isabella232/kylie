@@ -10,15 +10,14 @@
 /**
  * This is the Round Trip Time plugin. Abbreviated to RT the parameter is the window
  * 
- * @param {Window} w
  * @private
  */
-function runrt(w) {
+function runrt() {
 
     /**
      * @type {Document}
      */
-    var d = w.document;
+    var d = window.document;
 
     BOOMR = BOOMR || {};
     BOOMR.plugins = BOOMR.plugins || {};
@@ -275,7 +274,7 @@ function runrt(w) {
             // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html
             // http://blogs.msdn.com/b/ie/archive/2010/06/28/measuring-web-page-performance.aspx
             // http://blog.chromium.org/2010/07/do-you-know-how-slow-your-web-page-is.html
-            p = w.performance || w["msPerformance"] || w["webkitPerformance"] || w["mozPerformance"];
+            p = window.performance || window["msPerformance"] || window["webkitPerformance"] || window["mozPerformance"];
 
             if (p && p.navigation) {
                 impl.navigationType = p.navigation.type;
@@ -284,20 +283,20 @@ function runrt(w) {
 
             if (p && p.timing) {
                 impl.ti = p.timing;
-            } else if (w.chrome && w.chrome.csi && w.chrome.csi().startE) {
+            } else if (window["chrome"] && window["chrome"].csi && window["chrome"].csi().startE) {
                 // Older versions of chrome also have a timing API that's sort of documented here:
                 // http://ecmanaut.blogspot.com/2010/06/google-bom-feature-ms-since-pageload.html
                 // source here:
                 // http://src.chromium.org/viewvc/chrome/trunk/src/chrome/renderer/loadtimes_extension_bindings.cc?view=markup
                 impl.ti = {
-                    navigationStart: w.chrome.csi().startE
+                    navigationStart: window["chrome"].csi().startE
                 };
                 source = "csi";
-            } else if (w.gtbExternal && w.gtbExternal.startE()) {
+            } else if (window["gtbExternal"] && window["gtbExternal"].startE()) {
                 // The Google Toolbar exposes navigation start time similar to old versions of chrome
                 // This would work for any browser that has the google toolbar installed
                 impl.ti = {
-                    navigationStart: w.gtbExternal.startE()
+                    navigationStart: window["gtbExternal"].startE()
                 };
                 source = 'gtb';
             }
@@ -412,9 +411,9 @@ function runrt(w) {
         init : function (config) {
 
             BOOMR.debug("init RT", "rt");
-            if (w !== BOOMR.window) {
-                w = BOOMR.window;
-                d = w.document;
+            if (window !== BOOMR.window) {
+                window = BOOMR.window;
+                d = window.document;
             }
 
             BOOMR.utils.pluginConfig(impl, config, "RT", ["cookie", "cookie_exp", "strict_referrer"]);
@@ -793,4 +792,4 @@ function runrt(w) {
         }
     };
 }
-runrt(window); // end of RT plugin
+runrt(); // end of RT plugin

@@ -107,19 +107,17 @@ var BEACON_URL = "";
 var VERSION = "";
 
 /**
- * @param {!Window} w
  * @private
  */
-function run(w) {
+function run() {
 
     /** 
      * @type {string}
      */
     var myurl;
 
-    // This is the only block where we use document without the w. qualifier
-    if (w.parent !== w && document.getElementById("boomr-if-as") && document.getElementById("boomr-if-as").nodeName.toLowerCase() === "script") {
-        w = w.parent;
+    if (window.parent !== window && document.getElementById("boomr-if-as") && document.getElementById("boomr-if-as").nodeName.toLowerCase() === "script") {
+        window = window.parent;
         myurl = document.getElementById('boomr-if-as').src;
     }
 
@@ -127,13 +125,13 @@ function run(w) {
      * @type {!Document}
      * @const
      */
-    var d = w.document;
+    var d = window.document;
 
     /**
      * @type {Object.<string, !(?)>}
      * @const
      */
-    var perfOptions = w["perfOptions"] || {};
+    var perfOptions = window["perfOptions"] || {};
 
     /**
      * @type {!string}
@@ -222,7 +220,7 @@ function run(w) {
         onclick_handler: function (ev) {
             var target;
             if (!ev) {
-                ev = w.event;
+                ev = window.event;
             }
             if (ev.target) {
                 target = ev.target;
@@ -249,7 +247,7 @@ function run(w) {
         onsubmit_handler: function(ev) {
             var target;
             if (!ev) {
-                ev = w.event;
+                ev = window.event;
             }
             if (ev.target) {
                 target = ev.target;
@@ -309,7 +307,7 @@ function run(w) {
      * @type {!string}
      * @private
      */
-    impl[SITE_DOMAIN_KEY_INTERNAL] = w.location.hostname.replace(/.*?([^.]+\.[^.]+)\.?$/, "$1").toLowerCase();
+    impl[SITE_DOMAIN_KEY_INTERNAL] = window.location.hostname.replace(/.*?([^.]+\.[^.]+)\.?$/, "$1").toLowerCase();
     /**
      * User's ip address determined on the server. Used for the BA cookie
      * 
@@ -385,9 +383,9 @@ function run(w) {
         version: VERSION,
 
         /**
-         * @type {?Window}
+         * @type {!Window}
          */
-        window: w,
+        window: window,
 
         /**
          * Utility functions
@@ -746,15 +744,15 @@ function run(w) {
                 if (d.readyState && d.readyState === "complete") {
                     boomr.setImmediate(boomr.page_ready, null, null, boomr);
                 } else {
-                    if (w["onpagehide"] || w["onpagehide"] === null) {
-                        boomr.utils.addListener(w, "pageshow", boomr.page_ready);
+                    if (window["onpagehide"] || window["onpagehide"] === null) {
+                        boomr.utils.addListener(window, "pageshow", boomr.page_ready);
                     } else {
-                        boomr.utils.addListener(w, "load", boomr.page_ready);
+                        boomr.utils.addListener(window, "load", boomr.page_ready);
                     }
                 }
             }
 
-            boomr.utils.addListener(w, "DOMContentLoaded", function () { impl.fireEvent("dom_loaded"); });
+            boomr.utils.addListener(window, "DOMContentLoaded", function () { impl.fireEvent("dom_loaded"); });
 
             (function () {
                 var fire_visible, forms, iterator;
@@ -778,12 +776,12 @@ function run(w) {
                     boomr.utils.addListener(forms[iterator], "submit", impl.onsubmit_handler);
                 }
 
-                if (!w["onpagehide"] && w["onpagehide"] !== null) {
+                if (!window["onpagehide"] && window["onpagehide"] !== null) {
                     // This must be the last one to fire
                     // We only clear w on browsers that don't support onpagehide because
                     // those that do are new enough to not have memory leak problems of
                     // some older browsers
-                    boomr.utils.addListener(w, "unload", function () {
+                    boomr.utils.addListener(window, "unload", function () {
                         delete boomr.window;
                     });
                 }
@@ -803,7 +801,7 @@ function run(w) {
         page_ready: function (ev) {
             var ev2 = ev;
             if (!ev2) {
-                ev2 = w.event;
+                ev2 = window.event;
             }
             if (!ev2) {
                 ev2 = { name: "load" };
@@ -829,14 +827,14 @@ function run(w) {
                 cb = null;
             };
 
-            if (w.setImmediate) {
-                w.setImmediate(cb);
-            } else if (w["msSetImmediate"]) {
-                w["msSetImmediate"](cb);
-            } else if (w["webkitSetImmediate"]) {
-                w["webkitSetImmediate"](cb);
-            } else if (w["mozSetImmediate"]) {
-                w["mozSetImmediate"](cb);
+            if (window.setImmediate) {
+                window.setImmediate(cb);
+            } else if (window["msSetImmediate"]) {
+                window["msSetImmediate"](cb);
+            } else if (window["webkitSetImmediate"]) {
+                window["webkitSetImmediate"](cb);
+            } else if (window["mozSetImmediate"]) {
+                window["mozSetImmediate"](cb);
             } else {
                 setTimeout(cb, 10);
             }
@@ -883,17 +881,17 @@ function run(w) {
             if (e_name === "page_unload") {
                 unload_handler = function (ev) {
                     if (fn) {
-                        fn.call(cb_scope, ev || w.event, cb_data);
+                        fn.call(cb_scope, ev || window.event, cb_data);
                     }
                 };
                 // pagehide is for iOS devices
                 // see http://www.webkit.org/blog/516/webkit-page-cache-ii-the-unload-event/
-                if (w["onpagehide"] || w["onpagehide"] === null) {
-                    boomr.utils.addListener(w, "pagehide", unload_handler);
+                if (window["onpagehide"] || window["onpagehide"] === null) {
+                    boomr.utils.addListener(window, "pagehide", unload_handler);
                 } else {
-                    boomr.utils.addListener(w, "unload", unload_handler);
+                    boomr.utils.addListener(window, "unload", unload_handler);
                 }
-                boomr.utils.addListener(w, "beforeunload", unload_handler);
+                boomr.utils.addListener(window, "beforeunload", unload_handler);
             }
 
             return boomr;
@@ -1031,9 +1029,6 @@ function run(w) {
             impl.vars["v"] = boomr.version;
             impl.vars["u"] = boomr.utils.cleanupURL(d.URL.replace(/#.*/, ""));
             // use d.URL instead of location.href because of a safari bug
-            if (w !== window) {
-                impl.vars["if"] = "";
-            }
 
             // If we reach here, all plugins have completed
             impl.fireEvent("before_beacon", impl.vars);
@@ -1089,10 +1084,10 @@ function run(w) {
 
     (function () {
 
-        if (w.YAHOO && w.YAHOO.widget && w.YAHOO.widget.Logger) {
-            boomr.log = w.YAHOO.log;
-        } else if (w.Y && w.Y.log) {
-            boomr.log = w.Y.log;
+        if (window["YAHOO"] && window["YAHOO"]["widget"] && window["YAHOO"]["widget"]["Logger"]) {
+            boomr.log = window["YAHOO"]["log"];
+        } else if (window["Y"] && window["Y"]["log"]) {
+            boomr.log = window["Y"]["log"];
         } else if (typeof window.console === "object" && window.console.log !== undefined) {
             boomr.log = function(m, l, s) { window.console.log(s + ": [" + l + "] " + m); };
         }
@@ -1107,10 +1102,11 @@ function run(w) {
              * @param {?string=} s 
              * @return {!IBOOMR}
              */
-            return function(m, s) {
+            function anon(m, s) {
                 boomr.log(m, l, "boomerang" + (s ? "." + s : ""));
                 return boomr;
-            };
+            }
+            return anon;
         }
 
         /**
@@ -1141,6 +1137,6 @@ function run(w) {
 
     BOOMR = boomr;
 }
-run(window);
+run();
 
 //end of boomerang beaconing section
