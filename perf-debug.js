@@ -989,7 +989,7 @@ function rtrestimingrun() {
           if (r[i].responseEnd > 0) {
             resourceInfo["rt_total"] = Math.round(r[i].responseEnd - r[i].startTime);
             if (r[i].responseStart) {
-              resourceInfo["rt_tansfer"] = Math.round(r[i].responseEnd - r[i].responseStart);
+              resourceInfo["rt_transfer"] = Math.round(r[i].responseEnd - r[i].responseStart);
             }
           }
           if (r[i].domainLookupEnd && r[i].domainLookupStart) {
